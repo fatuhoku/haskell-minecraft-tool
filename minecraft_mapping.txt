@@ -1,0 +1,19 @@
+The origining site:
+http://clockworkcodex.blogspot.com/2011/06/minecraft-mapping-reading-minecraft.html
+----------------------------------------------------------------------------------
+
+
+The cubic volume occupied by a Minecraft block is a single Cell. The save
+game format is all about the management of these cells.
+
+World:  512x512 regions
+Region: 32x32 chunks
+Chunk:  16x16 cells
+
+The Y dimension is 128 blocks tall.
+
+Each chunk used to be stored as an NBT file.
+Recently, MCR files are instead used, and bundles a bunch of NBT files.
+
+MCR file are just containers for NBT files; the MCR format is described in the
+link.
