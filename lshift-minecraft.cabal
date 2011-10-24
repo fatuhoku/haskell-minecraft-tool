@@ -51,7 +51,7 @@ Executable lshift-minecraft
   -- Packages needed in order to build this package.
      Build-depends:  base, nbt, utf8-string, binary,
                      bytestring, zlib, directory,
-                     pretty-show
+                     pretty-show, lazysmallcheck, OddWord
   
   -- Modules not exported by this package.
   -- Other-modules:       

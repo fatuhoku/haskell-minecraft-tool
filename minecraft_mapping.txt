@@ -1,7 +1,8 @@
 The origining site:
 http://clockworkcodex.blogspot.com/2011/06/minecraft-mapping-reading-minecraft.html
+Minecraft Savec File Format in Beta 1.3 blogpost from mojang
+http://mojang.com/2011/02/16/minecraft-save-file-format-in-beta-1-3/
 ----------------------------------------------------------------------------------
-
 
 The cubic volume occupied by a Minecraft block is a single Cell. The save
 game format is all about the management of these cells.
@@ -17,3 +18,37 @@ Recently, MCR files are instead used, and bundles a bunch of NBT files.
 
 MCR file are just containers for NBT files; the MCR format is described in the
 link.
+
+== Parsing Region files ==
+This is a little more involved, because it requires the reading of first,
+location information, and then timestamp information.
+ - Read in the appropriate data as ByteStrings first.
+
+== Parsing NBT ==
+NBT Parser exists for Haskell. Serializer and deserializer is included there as
+well.
+
+== Making sense of Alpha chunk files ==
+The parsed NBT is incredibly useful work with. "Block" data is stored in the
+block tag (defines the block's type). 8-bits per block to identify this;
+whereas further details about the block (exact texture, subtype) is provided
+by the 4-bit per block Data.
+
+IN:  NBT
+OUT: Array
+
+Doesn't look like there's a particular lazy way to obtain an array from a
+ByteString.
+
+TODO
+--------------------
+ - Compute which region file will need to be accessed to put a block on top of
+   the player's head.
+ - Read the region file(s) that require modifications to chunk data.
+   appropriate for the player's coordinates.
+
+ - Pass the decompressed NBT data to the NBT parser;
+ - Modify the chunks' NBT file as appropriate
+ - Re-compress the NBT data into the appropriate chunk of the MCR file..
+  - Will re-writing of the MCR file be required?
+ - Write the new MCR files out.

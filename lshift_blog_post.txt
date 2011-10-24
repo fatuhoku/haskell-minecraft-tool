@@ -1,0 +1,47 @@
+== Importing images into a Minecraft World with Haskell (Part 1) ==
+
+<< Picture of LShift logo in wool above the player's head, with the player
+holding the signiture Minecraft iron pickaxe, looking upwards, GUI disabled >> 
+
+Clearly, anything squareish has a place in the Minecraft world.
+
+Holding onto that thought, it was pointed out to me recently that a guy called
+Adam Foltzer wrote a lovely Haskell NBT parser (at
+http://blog.acfoltzer.net/2010/12/minecraft-data-api-for-haskell-haskellnbt/).
+This work would go on to pathe way for interesting tools for manipulating
+Haskell saved worlds.
+
+Of course, this gave me the idea that perhaps a fun little side project could
+involve both the my favourite game of the year, and my favourite functional
+programming language Haskell.
+
+This blog post explores just what it takes to take an idea form
+conceptualization to implementation in this ill understood programming
+language, often seen as something reserved for academic research.
+
+== The Idea ==
+Write a program, that given a BMP file, would put, into the Minecraft world,
+a version of that BMP above the player's head.
+
+ - LShift's logo is a design based on an arrangement of white and blue pixels.
+
+== How this is done ==
+Players of Minecraft may know that everything in the game is based on blocks.
+There are many kinds of blocks: dirt, sand, wood, leaves, stone, lava, water
+etc.. _Everything_ is a block. Each of which have their own texture.
+
+In particular, when a player shears (or kills) sheep, the player obtains
+wool blocks. The special thing about wool blocks is that they can be dyed into
+different colours. Wool blocks can be carried around as items, or positioned
+in the world, usually for decorative purposes.
+(If you want to know about all the different colours of wool, check out 
+http://www.minecraftwiki.net/wiki/Wool)
+
+== Libraries involved ==
+Bytestring
+Binary - parsing binary data from ByteStrings.
+SmallCheck - testing library that generates 'small' values of algebraic data
+  types inductively, up to a particular depth.
+
+== Challenges ==
+

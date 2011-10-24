@@ -19,17 +19,14 @@ import Control.Monad
 import System.Directory
 import System.IO
 
-data Region = Region
+import Region
+import Types
 
-type RegionCoords = (Int, Int)
-type ChunkCoords = (Int, Int)
-type CellCoords = (Int, Int)
-type SavedGameDirectory = FilePath
-type BlockType = String
 
--- A cell replacement represents the change of blocktype at some position
--- in the game world to to the specified BlockType.
-data CellReplacement = CR { cell ::  CellCoords, blockId :: BlockType }
+-- These are constant dimensions
+chunkSizeX = 16
+chunkSizeY = 128
+chunkSizeZ = 16
 
 -- We will need to solve the problem of displaying a m x n image
 -- directly on top of a player.
@@ -70,29 +67,26 @@ loadLevel dir = do
       enc = encode dec
   return dec
 
-loadRegion :: SavedGameDirectory -> RegionCoords -> IO NBT
-loadRegion dir (x,z) = do
-  let fn = printf "r.%d.%d.mcr" x z :: String
-  let block = toInteger $ 4*(x+z*32) :: Integer
-  withFile (printf "%s/%s" dir fn) WriteMode $ \file -> do
-    hSeek file AbsoluteSeek block
-    header <- B.hGet file 5
-    let (byteCount, compression) = runGet deserializeChunkDataHeader header
-    zChunkData <- B.hGet file (fromIntegral byteCount-1)
-    let chunkData = decompressWith compression
-    let chunkNbt = (decode chunkData :: NBT)
-    return EndTag
-  where
-    deserializeChunkDataHeader :: Get (Word32,Word8)
-    deserializeChunkDataHeader = do
-      byteCount <- getWord32be
-      compressionType <- getWord8
-      return (byteCount,compressionType)
-    decompressWith compression = case compression of
-      1 -> GZip.decompress
-      2 -> Zlib.decompress
-      _ -> error $ "Unsupported compression type: " ++ show compression
     
+-- Given an NBT, we want to produce a 3D array, holding all that lovely data.
+-- The byteArray is actually rather nicely given as a ByteString.
+-- We just need a way of converting that bytestring into 3D array.
+-- Extracting the Blocks tag shouldn't be too difficult.
+--
+-- We can access a block's location by the 
+-- unsigned char BlockID = Blocks[ y + z * ChunkSizeY(=128) + x * ChunkSizeY(=128) * ChunkSizeZ(=16) ];
+loadChunk :: NBT -> B.ByteString
+loadChunk (CompoundTag (Just "Level") ltags) =
+  let (ByteArrayTag _ bsLength blocks) = fromJust $ maybeBlocksTag
+  in blocks
+  where
+    maybeBlocksTag = find (("Blocks" ==) . fromJust . getName) ltags
+
+
+-- TODO Write the function that would apply a cell replacement to the
+-- chunk data bytestrings.
+applyReplacement :: CellReplacement -> ChunkData -> ChunkData
+applyReplacement (CR (x,y,z) id did) cd = undefined
 
 --  The relevant Python code for the above is:
 --  block = 
@@ -151,18 +145,18 @@ getPlayerCoords (CompoundTag (Just "" ) tags) =
     isPlayerTag _ = False
 getPlayerCoords _ = error "Invalid level.dat NBT: does not begin with Data CompoundTag"
 
-readRegionFile :: FilePath -> RegionCoords -> IO Region 
-readRegionFile = undefined
-
 toRegionCoords :: ChunkCoords -> RegionCoords
 toRegionCoords (x,z) = (chunkToRegion x, chunkToRegion z)
   where
     chunkToRegion n = floor (fromIntegral n/32.0)
 
 toChunkCoords :: CellCoords -> ChunkCoords
-toChunkCoords (x,z) = (cellToChunk x, cellToChunk z)
+toChunkCoords (x,_,z) = (cellToChunk x, cellToChunk z)
   where
     cellToChunk n = floor (fromIntegral n/16.0)
+
+toChunkIndex :: CellCoords -> ChunkIndex
+toChunkIndex (x,y,z) = y + z * chunkSizeY + x * chunkSizeY * chunkSizeZ
 
 -- We can express the boundary positions of the rectangle ...
 
