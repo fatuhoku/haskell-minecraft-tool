@@ -45,7 +45,7 @@ loadRegion dir (x,z) = do
     -- Read Region file body
     -- TODO fix the undefined parts.
     -- locations <- runGet (sequence . repeat getChunkLocation) bLoc
-    locations <- runGet undefined bLoc
+    locations <- runGet (sequence . repeat undefined) bLoc
     timeStamps <- runGet undefined bTs
     
     -- We process the locations by parsing every chunk as NBTs.
