@@ -43,9 +43,9 @@ loadRegion dir (x,z) = do
     bTs  <- B.hGet file timestampsFieldSize
 
     -- Read Region file body
-    -- TODO fix the undefined parts.
+    -- FIXME Undefined
     -- locations <- runGet (sequence . repeat getChunkLocation) bLoc
-    locations <- runGet (sequence . repeat undefined) bLoc
+    locations <- undefined
     timeStamps <- runGet undefined bTs
     
     -- We process the locations by parsing every chunk as NBTs.
