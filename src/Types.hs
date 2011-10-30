@@ -7,6 +7,7 @@ import Data.Binary.Get
 import Data.List
 import Data.Maybe
 import Data.NBT
+import Data.Array
 
 import qualified Text.Show.Pretty as Pr
 import Text.Printf
@@ -19,12 +20,14 @@ import System.IO
 
 -- Represents the contents of a region file.
 -- This is essentially a list of lazily decompressed bits of chunk data.
-data Region = Region [Chunk]
+data Region = Region (Array (X,Z) Chunk)
 data Chunk = Chunk {
   chunkNbt :: NBT,
   chunkTimestamp :: Timestamp
   }
 
+type X = Int -- X coordinate type
+type Z = Int -- Z coordinate type
 type Timestamp = Word32
 type RegionCoords = (Int, Int)
 type ChunkCoords = (Int, Int)
