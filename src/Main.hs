@@ -58,7 +58,7 @@ main = do
   putStrLn $ show coord
 
 -- Loads a level.dat file given the saved game directory.
-loadLevel :: SavedGameDirectory -> IO NBT
+loadLevel :: WorldDirectory -> IO NBT
 loadLevel dir = do
   let fn = dir ++ "/level.dat"
   fileL <- GZip.decompress <$> B.readFile fn
@@ -86,7 +86,7 @@ loadChunk (CompoundTag (Just "Level") ltags) =
 -- TODO Write the function that would apply a cell replacement to the
 -- chunk data bytestrings.
 applyReplacement :: CellReplacement -> ChunkData -> ChunkData
-applyReplacement (CR (x,y,z) id did) cd = undefined
+applyReplacement (CR (x,y,z) id did) cd = error "applyReplacement: not implemented"
 
 --  The relevant Python code for the above is:
 --  block = 
@@ -174,7 +174,7 @@ getName (ListTag      name _ _ _) = name
 getName (CompoundTag  name _) = name
 
 getInt (IntTag _ n) = fromIntegral n
-getInt _ = undefined
+getInt t = error $ printf "getInt: %s is not an IntTag." (show t)
 
 compoundContents (CompoundTag _ contents) = contents
 compoundContents _ = error "Not CompoundTag"

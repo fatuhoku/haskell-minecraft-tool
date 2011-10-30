@@ -19,12 +19,12 @@ import System.Directory
 import System.IO
 
 -- Represents the contents of a region file.
--- This is essentially a list of lazily decompressed bits of chunk data.
-data Region = Region (Array (X,Z) Chunk)
-data Chunk = Chunk {
-  chunkNbt :: NBT,
-  chunkTimestamp :: Timestamp
-  }
+-- A region is essentially an array of possible chunks;
+-- Nothing chunks refer to those that have not been generated yet.
+-- Just chunks are those that have relevant data in the file.
+data Region = Region (Array (X,Z) (Maybe Chunk)) deriving (Eq)
+data Chunk = Chunk { chunkNbt :: NBT, chunkTimestamp :: Timestamp }
+  deriving (Eq)
 
 type X = Int -- X coordinate type
 type Z = Int -- Z coordinate type
@@ -32,7 +32,7 @@ type Timestamp = Word32
 type RegionCoords = (Int, Int)
 type ChunkCoords = (Int, Int)
 type CellCoords = (Int, Int, Int)
-type SavedGameDirectory = FilePath
+type WorldDirectory = FilePath
 
 type ChunkIndex = Int
 -- A pair of bytestrings
