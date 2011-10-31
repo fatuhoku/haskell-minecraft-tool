@@ -22,9 +22,17 @@ import System.IO
 -- A region is essentially an array of possible chunks;
 -- Nothing chunks refer to those that have not been generated yet.
 -- Just chunks are those that have relevant data in the file.
-data Region = Region (Array (X,Z) (Maybe Chunk)) deriving (Eq)
-data Chunk = Chunk { chunkNbt :: NBT, chunkTimestamp :: Timestamp }
+-- But to ensure we do not decompress and recompress all unaffected chunks,
+-- chunk data should be stored in their own compressed bytestring format.
+data Region = Region (Array (X,Z) (Maybe CompressedChunk)) deriving (Eq)
+
+data CompressedChunk = CompressedChunk {
+  compressedChunkNbt :: B.ByteString,
+  compressedChunkFormat :: CompressionFormat,
+  compressedChunkTimestamp :: Timestamp }
   deriving (Eq)
+
+data CompressionFormat = GZip | Zlib deriving (Eq, Show)
 
 type X = Int -- X coordinate type
 type Z = Int -- Z coordinate type
@@ -34,7 +42,9 @@ type ChunkCoords = (Int, Int)
 type CellCoords = (Int, Int, Int)
 type WorldDirectory = FilePath
 
+type Chunk = NBT
 type ChunkIndex = Int
+
 -- A pair of bytestrings
 --  - the array of BlockIDs (1 byte per block)
 --  - the array of DataIDs  (1 nibble per block)

@@ -67,8 +67,36 @@ loadRegion directory (x,z) = do
 -- modified and the file as a whole re-written out into the file. 
 
 -- | Returns an action in the Put monad that encodes a Region as a ByteString
+-- When writing out regions, the locations need not be contiguous. Minecraft
+-- shouldn't care about the actual locations, just that the locations header
+-- reports the correct bytes.
+-- There are several components to writing a chunk:
+--    necessary info: (ByteString [compressed NBT],compressed size) 
+--
+-- - For all associations array (in index order)   Array ((X,Z), Maybe CompressedChunk)
+-- - Compress the NBT into a relevant bytestrings...   [((X,Z), Maybe ByteString)] 
+--   - Extract the timestamps on each coordinate ... I will need them.
+--     We take the liberty of putting a 0 timestamp for null chunks.
+--   - Find the size of the resultant compressed bytestring. (B.length)
+--   - Compute from this list a list of rounded, and not-rounded lengths.
+--     There must be 4KiB alignment in the output!  ()
+-- - Scan over this list to produce the list of locations for our region file
+--   header
+-- - Scan across the sizes of the bytestrings to get the locations header.
+-- - Write the locations part of the header.
+-- - Write the timestamps part of the header. (largely unchanged!)
+-- - Write individual bytestrings in order of their index, aligning at 4KiB
+--   boundaries.
 putRegion :: Region -> Put
-putRegion bs = error "putRegion: not implemented"
+putRegion (Region region) = error "putRegion: not implemented"
+-- do
+--   let ass = map (\(c,d) -> (c, encode d)) . assocs region
+--   let timestamps = chunkTimestamp $ catMaybes ass -- but this discards index information.
+
+-- | @divPlus1 a b@ essentially finds out the number of @b@s required to fit
+-- one @a@ in. 
+divPlus1 :: Int64 -> Int64 -> Int64
+divPlus1 x n = ((x-1) `div` n) + 1
 
 -- | Returns an action in the Get monad that decodes a Region from a ByteString
 -- Chunks that have not been generated in the region will have 0 for location.
@@ -91,15 +119,15 @@ getRegion = do
 
   -- Process non-null (actual) chunks by reading from compressed data.
   let chunksList = sortBy (compare `on` snd) nonNullChunks
-  chunks <- getChunkData (map snd chunksList) timestamps
-  let actualChunks = zip (map fst chunksList) $ map Just chunks
+  compressedChunks <- getCompressedChunks (map snd chunksList) timestamps
+  let nonNullChunks = zip (map fst chunksList) $ map Just compressedChunks
 
   -- Set up and return the array.
   let arrayMin = (0,0)
   let arrayMax = (numChunksInRow, numChunksInCol)
   let arrayBounds = (arrayMin, arrayMax)
 
-  return $ Region $ array arrayBounds (nothingChunks ++ actualChunks)
+  return $ Region $ array arrayBounds (nothingChunks ++ nonNullChunks)
   where
     ftrace = flip trace
 
@@ -123,26 +151,28 @@ getRegion = do
 
     -- Get chunks from the current bytestring.
     -- locs must be ordered.
-    getChunkData :: [Location] -> [Timestamp] -> Get [Chunk]
-    getChunkData locs times = do
-      nbts <- mapM getChunk locs
-      return $ zipWith Chunk nbts times
+    getCompressedChunks :: [Location] -> [Timestamp] -> Get [CompressedChunk]
+    getCompressedChunks locs times = do
+      (formats, bss) <- return . unzip =<< mapM getCompressedChunkData locs
+      return $ zipWith3 CompressedChunk bss formats times
 
     -- Converts a ByteString representing "Chunk Data"
     -- to a parsed NBT of that chunk.
-    getChunk :: Location -> Get NBT
-    getChunk loc = do
+    getCompressedChunkData :: Location -> Get (CompressionFormat, B.ByteString)
+    getCompressedChunkData loc = do
       bytesRead >>= \br -> skip $ fromIntegral (loc - fromIntegral br) 
-      (byteCount, zipMethod) <- getChunkMeta
-      compressedChunkData <- getLazyByteString (fromIntegral byteCount-1)
-      return $ decode . decompressWith zipMethod $ compressedChunkData 
+      (byteCount, formatId) <- getChunkMeta
+      bs                    <- getLazyByteString (fromIntegral byteCount-1)
+      let format = toCompressionFormat formatId 
+      return (format, bs)
+
       where
         getChunkMeta = do
           byteCount <- getWord32be
           compressionType <- getWord8
           return (byteCount,compressionType)
 
-        decompressWith compression = case compression of
-          1 -> GZip.decompress
-          2 -> Zlib.decompress
-          _ -> error $ "Unsupported compression type: " ++ show compression
+        toCompressionFormat n = case n of
+          1 -> GZip
+          2 -> Zlib
+          _ -> error $ "toCompressionFormat: unsupported compression number: " ++ show n
