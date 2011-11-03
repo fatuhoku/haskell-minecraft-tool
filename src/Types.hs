@@ -79,6 +79,7 @@ data WoolColour = White
                 | Green
                 | Red
                 | Black
+                deriving (Show, Eq)
 
 instance Binary WoolColour where
   get = do
@@ -118,3 +119,5 @@ instance Binary WoolColour where
   put Green     = put (13:: Word16)
   put Red       = put (14:: Word16)
   put Black     = put (15:: Word16)
+
+type WoolColourArray = Array (Int,Int) WoolColour

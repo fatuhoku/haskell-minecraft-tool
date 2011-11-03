@@ -1,9 +1,30 @@
 module Colour where
 
+import Data.List.Extras.Argmax
+import Data.Array.IArray
+import Png
 import Types
 
+-- Map the given colour onto the closest WoolColour.
+quantize :: Rgba -> WoolColour
+quantize c = fst $ argmin (flip dist c . snd) woolColours
+
+-- a `dist` b is the distance from a to b (this is b-a)
+dist :: Rgba -> Rgba -> Double
+dist a b = mag $ b `minus` a
+
+-- Computes the magnitude
+mag :: Rgba -> Double
+mag (r,g,b,a) = fromIntegral . sum $ map (^2) [r,g,b,a]
+
+minus :: Rgba -> Rgba -> Rgba
+minus (r1,g1,b1,a1) (r2,g2,b2,a2) = (r1-r2, g1-g2, b1-b2, a1-a2)
+
+quantizePixArray:: PixArray -> WoolColourArray
+quantizePixArray = amap quantize
+
 -- The colours for each of the Wool types are given in the list below:
-woolColours :: WoolColour -> Rgba
+woolColours :: [(WoolColour, Rgba)]
 woolColours = [
   (White    , (221,221,221,0)),
   (LightGray, (158,165,165,0)),
