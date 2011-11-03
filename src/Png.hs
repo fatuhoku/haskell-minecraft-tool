@@ -59,7 +59,3 @@ findAverages :: FilePath -> IO [Rgba]
 findAverages fp = do
   pixArray <- withImage (loadPngFile fp) parseImage
   return $ map average $ splitPixArray 16 pixArray
-
--- The idea is to take an image and get a load of blocks of wool out of it.
--- minecraftQuantize :: BMP -> Array Wool
--- minecraftQuantize bmp = map matchColour bmp
