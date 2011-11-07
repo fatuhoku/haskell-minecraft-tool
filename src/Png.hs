@@ -9,7 +9,6 @@ import Data.Binary
 import Data.Binary.Get
 import Data.Colour.SRGB
 
-import Codec.BMP
 import Graphics.GD.ByteString.Lazy
 
 type Rgba = (Int,Int,Int,Int) 

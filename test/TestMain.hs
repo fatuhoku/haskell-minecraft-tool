@@ -16,7 +16,10 @@ import Region
 -- from the test world and conduct the decEncDec test on it.
 main :: IO ()
 main = do
+  putStrLn "Loading region from file..."
   region <- loadRegion testWorld (0,0)
+  putStrLn "... finished loading region from file"
+  putStrLn "Using region to check property..."
   exitWith $ if (prop_decEnc region)
     then ExitSuccess
     else ExitFailure 1
@@ -25,4 +28,4 @@ main = do
 
 {- SmallCheck property -}
 prop_decEnc :: Region -> Bool
-prop_decEnc region = decode (encode region) == region
+prop_decEnc r = decode (encode r) == r
