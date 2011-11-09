@@ -24,13 +24,16 @@ import System.IO
 -- Just chunks are those that have relevant data in the file.
 -- But to ensure we do not decompress and recompress all unaffected chunks,
 -- chunk data should be stored in their own compressed bytestring format.
-data Region = Region (Array (X,Z) (Maybe CompressedChunk)) deriving (Eq)
+data Region = Region (Array (X,Z) (Maybe CompressedChunk)) deriving (Eq,Show)
 
 data CompressedChunk = CompressedChunk {
   compressedChunkNbt :: B.ByteString,
   compressedChunkFormat :: CompressionFormat,
   compressedChunkTimestamp :: Timestamp }
   deriving (Eq)
+
+instance Show CompressedChunk where
+  show _ = "cc"
 
 data CompressionFormat = GZip | Zlib deriving (Eq, Show)
 

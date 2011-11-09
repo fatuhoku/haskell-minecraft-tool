@@ -3,6 +3,7 @@ module Main where
 import Test.LazySmallCheck
 import Data.Binary
 import System
+import Control.DeepSeq
 
 import Types
 import Region
@@ -26,6 +27,7 @@ main = do
   where
     testWorld = "worlds/testworld"
 
-{- SmallCheck property -}
+{- Properties
+ - Since we want r to be evaluated once and once only, we will make r shared -}
 prop_decEnc :: Region -> Bool
-prop_decEnc r = decode (encode r) == r
+prop_decEnc r = let r = r :: Region in decode (encode r) == r

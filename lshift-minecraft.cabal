@@ -52,7 +52,7 @@ Test-Suite test-lshift-minecraft
                      pretty-show, lazysmallcheck, OddWord,
                      derive>=2.5.4, colour, array,
                      utility-ht, gd, haskell98, data-ordlist,
-                     list-extras
+                     list-extras, deepseq
 
 Executable lshift-minecraft
   -- .hs or .lhs file containing the Main module.

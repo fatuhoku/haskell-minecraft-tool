@@ -41,7 +41,6 @@ import System.IO
 import Types
 import Utils
 
-
 -- Kilobytes to Bytes, and we define a 'sector' to be 4KiB
 kB = 1024
 sector = 4*kB
@@ -61,11 +60,21 @@ instance Binary Region where
 
 type Location = Int64
 
+withRegion :: WorldDirectory -> RegionCoords -> (Region -> Region) -> IO ()
+withRegion directory coords trans = do
+  region <- loadRegion directory coords
+  saveRegion directory coords (trans region)
+
 -- Read in a region given region coordinates.
 loadRegion :: WorldDirectory -> RegionCoords -> IO Region
 loadRegion directory (x,z) = do
   let filename = printf "r.%d.%d.mcr" x z :: String
   decodeFile (printf "%s/region/%s" directory filename)
+
+saveRegion :: WorldDirectory -> RegionCoords -> Region -> IO ()
+saveRegion directory (x,z) region = do
+  let filename = printf "r.%d.%d.mcr" x z :: String
+  encodeFile (printf "%s/region/%s" directory filename) region
 
 -- TODO Modifying block data (especially adding a lot of detail) 
 -- can cause an inflation in the size of the chunk data. When stored again
@@ -178,13 +187,13 @@ getRegion = do
 
   -- Convert second component from (Maybe Location) to (Maybe CompressedChunk)
   -- Why not have Maybe Location -> Maybe CompressedChunk
-  -- written as fmap something? Surely we zip on indices too early?
   let nullChunks = map (\(i,Nothing) -> (i,Nothing)) nullLocs
 
-  -- Sort chunksList by location of access.
-  let chunksList = sortBy (compare `on` snd) nonNullLocs
-  compressedChunks <- getCompressedChunks (map (fromJust . snd) chunksList) timestamps
-  let nonNullChunks = zip (map fst chunksList) $ map Just compressedChunks
+  -- Sort chunksList by location of access, ensuring the order of indices
+  -- is preserved.
+  let (nnIndices, nnSortedLocs) = unzip $ sortBy (compare `on` snd) nonNullLocs
+  compressedChunks <- getCompressedChunks (map fromJust nnSortedLocs) timestamps
+  let nonNullChunks = zip nnIndices $ map Just compressedChunks
 
   -- Set up and return the array.
   let arrayMin = (0,0)
@@ -199,38 +208,39 @@ getRegion = do
 
     -- Read the region file header and return a list of chunk locations along
     -- with their chunks coordinates.
+    -- CHECKED! The locations read in are satisfactory.
     getRegionFileHeader :: Get ([Location],[Timestamp])
     getRegionFileHeader = do
-      locations <- getTimes numChunksInRegion getChunkLocation
+      locations <- return . funtrace "Chunk locations: " (printf "%x") . map (4*kB*) =<< getTimes numChunksInRegion getChunkLocation
       timestamps <- getTimes numChunksInRegion getTimestamp
-      return (map (4*kB*) locations,timestamps)
-      
-    -- We will get the 'offset' part of the Chunk location descriptor only.
-    -- The sector count field is discarded.
-    getChunkLocation :: Get Int64
-    getChunkLocation = return . fromIntegral . (`shiftR` 8) =<< getWord32be
+      return (locations,timestamps)
+      where
+        getChunkLocation :: Get Int64
+        getChunkLocation = return . fromIntegral . (`shiftR` 8) =<< getWord32be
 
-    getTimestamp :: Get Timestamp
-    getTimestamp = getWord32be
+        getTimestamp :: Get Timestamp
+        getTimestamp = getWord32be
 
-    -- Get chunks from the current bytestring.
-    -- locs must be ordered.
+    -- Gets compressed chunk objects. The list of locations must be sorted.
     getCompressedChunks :: [Location] -> [Timestamp] -> Get [CompressedChunk]
     getCompressedChunks locations timestamp = do
-      (formats, bss) <- return . unzip =<< mapM getCompressedChunkData locations
-      return $ zipWith3 CompressedChunk bss formats timestamp
-
-    -- Converts location into 
-    -- to a parsed NBT of that chunk.
-    getCompressedChunkData :: Location -> Get (CompressionFormat, B.ByteString)
-    getCompressedChunkData loc = do
-      bytesRead >>= \br -> skip $ fromIntegral (loc - fromIntegral br) 
-      (byteCount, formatId) <- getChunkMeta
-      bs                    <- getLazyByteString (fromIntegral byteCount-1)
-      let format = toCompressionFormat formatId 
-      return (format, bs)
-
+      formatsAndCompressedNbts <- mapM getCompressedChunkData locations
+      let (compressionFormats, compressedNbts) = unzip $ temptrace formatsAndCompressedNbts
+      return $ zipWith3 CompressedChunk compressedNbts compressionFormats timestamp
       where
+
+        temptrace = funtrace "Comp NBT" (\(cf,cn) ->
+          printf "(%s,%s)" (show cf) (printf "%x" $ B.length cn :: String))
+
+        -- Converts location into a parsed NBT of that chunk.
+        getCompressedChunkData :: Location -> Get (CompressionFormat, B.ByteString)
+        getCompressedChunkData loc = do
+          bytesRead >>= \br -> skip $ fromIntegral (loc - fromIntegral br) 
+          (byteCount, formatId) <- getChunkMeta
+          bs                    <- getLazyByteString (fromIntegral byteCount)
+          let format = toCompressionFormat formatId 
+          return (format, bs)
+
         getChunkMeta = do
           byteCount <- getWord32be
           compressionType <- getWord8
