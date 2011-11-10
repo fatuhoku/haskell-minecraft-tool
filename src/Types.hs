@@ -18,12 +18,12 @@ import Control.Monad
 import System.Directory
 import System.IO
 
+
 -- Represents the contents of a region file.
--- A region is essentially an array of possible chunks;
--- Nothing chunks refer to those that have not been generated yet.
--- Just chunks are those that have relevant data in the file.
--- But to ensure we do not decompress and recompress all unaffected chunks,
--- chunk data should be stored in their own compressed bytestring format.
+--   A region is an array of possible chunks;
+--   Nothing are chunks that have not been generated yet.
+--   Just chunks are those that have relevant data in the file.
+--   The data is kept uncompressed unless it is needed.
 data Region = Region (Array (X,Z) (Maybe CompressedChunk)) deriving (Eq,Show)
 
 data CompressedChunk = CompressedChunk {
@@ -57,6 +57,7 @@ data ChunkData = ChunkData {
   }
 
 type DataType = String
+
 
 -- A cell replacement represents the change of blocktype at some position
 -- in the game world to to the specified BlockType.

@@ -40,18 +40,19 @@ import System.IO
 
 import Types
 import Utils
+import Constants
 
 -- Kilobytes to Bytes, and we define a 'sector' to be 4KiB
 kB = 1024
-sector = 4*kB
-
--- The header is 8kB in size
-headerSizeInSectors = 2
-
 -- There are 32x32 chunks in a region.
 numChunksInRow = 32
 numChunksInCol = 32
 numChunksInRegion = numChunksInRow * numChunksInCol 
+
+sector = 4*kB
+
+-- The header is 8kB in size
+headerSizeInSectors = 2
 
 -- Region binary instance must provide a get and put functions
 instance Binary Region where
@@ -114,7 +115,7 @@ putRegion (Region region) = do
   -- compute the locations.
   -- Retrieve a list of timestamps and write the complete header out.
   let sectorCounts = (amap sectorCountOf region !) <$> indices :: [Word8]
-  let locations = map fromIntegral $ scanl (+) headerSizeInSectors sectorCounts :: [Word32]
+  let locations = fromIntegral <$> scanl (+) headerSizeInSectors sectorCounts :: [Word32]
   let timestamps = (amap timestampOf region !) <$> indices :: [Timestamp]
   putRegionFileHeader locations sectorCounts timestamps
   forM_ (elems region) putCompressedChunkData
@@ -178,21 +179,21 @@ getRegion = do
   -- Read the file header and associate indices with the read data, partitioning 
   -- chunks that exist (nonNullLocs) on file from those that have not been
   -- generated yet by Minecraft (nullLocs)
-  (locations,timestamps) <- getRegionFileHeader
+  (locations,timestamps) <- trace "getRegion invoked... \n" getRegionFileHeader
 
   -- Lift the second component (locations) into Maybe monad
-  let mLocations = map (toMaybe (/=0)) locations
+  let mLocations = toMaybe (/=0) <$> locations
 
   let (nullLocs, nonNullLocs) = partition (isNothing . snd) $ zip indices mLocations
 
   -- Convert second component from (Maybe Location) to (Maybe CompressedChunk)
   -- Why not have Maybe Location -> Maybe CompressedChunk
-  let nullChunks = map (\(i,Nothing) -> (i,Nothing)) nullLocs
+  let nullChunks = (\(i,Nothing) -> (i,Nothing)) <$> nullLocs
 
   -- Sort chunksList by location of access, ensuring the order of indices
   -- is preserved.
   let (nnIndices, nnSortedLocs) = unzip $ sortBy (compare `on` snd) nonNullLocs
-  compressedChunks <- getCompressedChunks (map fromJust nnSortedLocs) timestamps
+  compressedChunks <- getCompressedChunks (fromJust <$> nnSortedLocs) timestamps
   let nonNullChunks = zip nnIndices $ map Just compressedChunks
 
   -- Set up and return the array.

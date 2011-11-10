@@ -28,6 +28,15 @@ chunkSizeX = 16
 chunkSizeY = 128
 chunkSizeZ = 16
 
+-- Let's just run the load function and figure out what happens when I print
+-- the region out twice. 
+main = do
+  region <- loadRegion "worlds/testworld" (0,0)
+  print region
+  print $ test region
+
+test :: Region -> Bool
+test r = (decode . encode) r == r
 -- We will need to solve the problem of displaying a m x n image
 -- directly on top of a player.
 --
@@ -45,7 +54,7 @@ chunkSizeZ = 16
 -- 
 -- In the test file, fileL is the lazy file handle; we can force the whole decompression to
 -- occur by doing B.pack . B.unpack $ fileL.
-main = do
+main2 = do
   dec <- loadLevel "worlds/testworld"
   let coord = getPlayerCoords dec
   putStrLn $ "-----------------------------"
