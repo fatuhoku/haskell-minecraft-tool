@@ -114,12 +114,21 @@ putRegion (Region region) = do
   -- Compute the number of sectors required for each chunk, and therefore
   -- compute the locations.
   -- Retrieve a list of timestamps and write the complete header out.
+  -- scanning is too simple: need the others to be 
   let sectorCounts = (amap sectorCountOf region !) <$> indices :: [Word8]
-  let locations = fromIntegral <$> scanl (+) headerSizeInSectors sectorCounts :: [Word32]
+  let tentativeLocations = scanl (+) headerSizeInSectors (map fromIntegral sectorCounts) :: [Location]
+
+  -- If sector count is 0, we force the location to be zero as well.
+  let locations = fromIntegral <$> zipWith locationFilter tentativeLocations sectorCounts :: [Word32]
   let timestamps = (amap timestampOf region !) <$> indices :: [Timestamp]
-  putRegionFileHeader locations sectorCounts timestamps
+  putRegionFileHeader locations sectorCounts (vtrace "Timestamps: " timestamps)
   forM_ (elems region) putCompressedChunkData
   where
+    -- We will need to set any locations that, after scanning, have a 0 sector
+    -- count to zero.
+    locationFilter :: Location -> Word8 -> Location
+    locationFilter loc sc = if sc == 0 then 0 else loc
+
     timestampOf :: Maybe CompressedChunk -> Timestamp
     timestampOf (Nothing) = 0
     timestampOf (Just cc) = compressedChunkTimestamp cc
@@ -128,7 +137,7 @@ putRegion (Region region) = do
     -- get the list of locations, surely.
     sectorCountOf :: Maybe CompressedChunk -> Word8
     sectorCountOf (Nothing) = 0
-    sectorCountOf (Just cc) = fromIntegral $ B.length (compressedChunkNbt cc) `divPlus1` 4*kB
+    sectorCountOf (Just (CompressedChunk {compressedChunkNbt=cNbt})) = fromIntegral $ B.length cNbt `divPlus1` (4*kB)
 
     -- putHeader serializes the header out into a bytestring...
     -- This will be index order. 
@@ -137,24 +146,26 @@ putRegion (Region region) = do
       zipWithM putLocationEntry locations sectionCounts
       mapM_ putWord32be timestamps
 
-    -- Putting a chunk without data is flushing;
-    -- Putting a chunk with compressed data is to write out the data and then
-    -- pad it with zeroes.
+    -- Put the chunk meta (field size and compression type)
+    -- Put compressed data, padding the block up with zeroes.
+    -- -5 accounts for the bytes used for the header.
     putCompressedChunkData :: (Maybe CompressedChunk) -> Put
-    putCompressedChunkData (Nothing) = flush -- TODO Ideally I want to do a no-op but...
+    putCompressedChunkData (Nothing) = return ()
     putCompressedChunkData chunk@(Just cc) = do
-      let sectorSize = 4*kB * fromIntegral (sectorCountOf chunk) :: Int64
-      let compressedDataSize = B.length (compressedChunkNbt cc)
-      let padding = B.replicate (sectorSize - compressedDataSize) 0
-      putLazyByteString (compressedChunkNbt cc)
-      putLazyByteString padding 
+      let sectorLength = 4*kB * fromIntegral (sectorCountOf chunk) :: Int64
+      let compressedData = compressedChunkNbt cc
+      let compressedDataSize = B.length compressedData
+      let padding = B.replicate (sectorLength - compressedDataSize - 5) 0
+      putWord32be $ fromIntegral compressedDataSize
+      put $ compressedChunkFormat cc
+      mapM_ putLazyByteString [compressedChunkNbt cc,padding] 
 
     -- We need to shiftl and then add the sector size. 
     -- (location::Word48,sectorCount::Word8) entries that go into the locations
     -- header
     putLocationEntry :: Word32 -> Word8 -> Put
     putLocationEntry location sectorCount = do
-      put $ shiftL location 8 + fromIntegral sectorCount
+      putWord32be $ shiftL location 8 .|. fromIntegral sectorCount
 
 -- | @roundToNearest a b @rounds @a@ to the nearest @b@
 roundToNearest :: (Integral a) => a ->  a -> a
@@ -179,21 +190,22 @@ getRegion = do
   -- Read the file header and associate indices with the read data, partitioning 
   -- chunks that exist (nonNullLocs) on file from those that have not been
   -- generated yet by Minecraft (nullLocs)
-  (locations,timestamps) <- trace "getRegion invoked... \n" getRegionFileHeader
+  (locations,timestamps) <- getRegionFileHeader
 
   -- Lift the second component (locations) into Maybe monad
   let mLocations = toMaybe (/=0) <$> locations
 
   let (nullLocs, nonNullLocs) = partition (isNothing . snd) $ zip indices mLocations
+  let indexedTimestamps = zip indices timestamps
 
   -- Convert second component from (Maybe Location) to (Maybe CompressedChunk)
   -- Why not have Maybe Location -> Maybe CompressedChunk
   let nullChunks = (\(i,Nothing) -> (i,Nothing)) <$> nullLocs
-
   -- Sort chunksList by location of access, ensuring the order of indices
-  -- is preserved.
+  -- is preserved. We lookup the appropriate times.
   let (nnIndices, nnSortedLocs) = unzip $ sortBy (compare `on` snd) nonNullLocs
-  compressedChunks <- getCompressedChunks (fromJust <$> nnSortedLocs) timestamps
+  let nnTimestamps = fromJust . flip lookup indexedTimestamps <$> nnIndices
+  compressedChunks <- getCompressedChunks (fromJust <$> nnSortedLocs) nnTimestamps
   let nonNullChunks = zip nnIndices $ map Just compressedChunks
 
   -- Set up and return the array.
@@ -224,30 +236,35 @@ getRegion = do
 
     -- Gets compressed chunk objects. The list of locations must be sorted.
     getCompressedChunks :: [Location] -> [Timestamp] -> Get [CompressedChunk]
-    getCompressedChunks locations timestamp = do
+    getCompressedChunks locations timestamps = do
+      -- consider using mapAndUnzipM instead of breaking it up. We're doing it
+      -- for debug purposes only at the moment.
       formatsAndCompressedNbts <- mapM getCompressedChunkData locations
-      let (compressionFormats, compressedNbts) = unzip $ temptrace formatsAndCompressedNbts
-      return $ zipWith3 CompressedChunk compressedNbts compressionFormats timestamp
+      let (compressionFormats, compressedNbts) = unzip formatsAndCompressedNbts
+      return $ zipWith3 CompressedChunk compressedNbts compressionFormats timestamps
       where
 
-        temptrace = funtrace "Comp NBT" (\(cf,cn) ->
-          printf "(%s,%s)" (show cf) (printf "%x" $ B.length cn :: String))
+        -- temptrace = funtrace "Comp NBT" (\(cf,cn) ->
+        --   printf "(%s,%s)" (show cf) (printf "%x" $ B.length cn :: String))
 
         -- Converts location into a parsed NBT of that chunk.
         getCompressedChunkData :: Location -> Get (CompressionFormat, B.ByteString)
+        getCompressedChunkData 0 = error "I should never be getting chunk data from the 0th location"
         getCompressedChunkData loc = do
-          bytesRead >>= \br -> skip $ fromIntegral (loc - fromIntegral br) 
-          (byteCount, formatId) <- getChunkMeta
-          bs                    <- getLazyByteString (fromIntegral byteCount)
-          let format = toCompressionFormat formatId 
-          return (format, bs)
+          bytesRead >>= \br -> skip $ fromIntegral (vtrace "Next location: " loc - vtrace "Bytes read: " (fromIntegral br))
+          (byteCount, compressionFormat) <- getChunkMeta
+          bs <- getLazyByteString (vtrace "Reading bytes: " (fromIntegral byteCount))
+          return (compressionFormat, bs)
 
-        getChunkMeta = do
-          byteCount <- getWord32be
-          compressionType <- getWord8
-          return (byteCount,compressionType)
+        -- Reads 5 bytes and retrieves the length of the compressed data as
+        -- well as the compression format it was compressed with.
+        getChunkMeta = liftM2 (,) getWord32be get
 
-        toCompressionFormat n = case n of
-          1 -> GZip
-          2 -> Zlib
-          _ -> error $ "toCompressionFormat: unsupported compression number: " ++ show n
+instance Binary CompressionFormat where
+  get = getWord8 >>= \n -> return $ g n
+    where 
+      g 1 = GZip
+      g 2 = Zlib
+      g x = error $ "get CompressionFormat: unsupported compression number: " ++ show x
+  put GZip = putWord8 1
+  put Zlib = putWord8 2

@@ -1,20 +1,15 @@
 module Main where
 
+import Data.Array
 import Test.Framework
-import Test.Framework.Providers.QuickCheck
-import QuickCheckUtils
+import Test.Framework.Providers.QuickCheck2
 import Test.QuickCheck
+import Data.Binary
+import qualified Data.ByteString.Lazy as L
 import System
-
 import Control.Monad
 
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as B
-import Data.Array
-import Data.Binary
-import Crypto.Random
-import Crypto.Types
-
+import Utils
 import Types
 import Region
 import Constants
@@ -25,10 +20,15 @@ tests = [
       ]
   ]
 
-{- Properties
- - Since we want r to be evaluated once and once only, we will make r shared -}
+{- Properties -}
+-- I want a function that would tell me what part of the region is not the same.
+-- One of the elements must necessarily be different.
 prop_decEncRegion :: Region -> Bool
-prop_decEncRegion r = (decode . encode) r == r
+prop_decEncRegion r@(Region reg) =
+  let rt@(Region roundTrip) = (decode . encode) r
+      differingEntries = filter (\(a,b) -> snd a /= snd b) $ zip (assocs reg) (assocs roundTrip)
+  in if rt /= r then error $ "The first 10 pairs of differing entries':" ++ show (take 10 differingEntries)
+                    else True
 
 -- Distribution.TestSuite requires that test frameworks (smallcheck, lazy-smallcheck)
 -- provide instances for classes defined in Distribution.TestSuite.
@@ -39,7 +39,6 @@ prop_decEncRegion r = (decode . encode) r == r
 -- from the test world and conduct the decEncDec test on it.
 main :: IO ()
 main = defaultMain tests
-
 
 -- INSTANCES --
 
@@ -53,42 +52,22 @@ main = defaultMain tests
 -- For this, we create a completely arbitrary set of lists of fixed length.
 -- This can be done by using the Arbitrary Monad instance.
 instance Arbitrary Region where
-  coarbitrary = undefined
   arbitrary = do
     chunks <- sequence [arbitrary | _ <- [1..numChunksInRegion]]
+--    chunks <- sequence $ arbitrary:[return Nothing | _ <- [4..numChunksInRegion]] ++ [arbitrary,arbitrary]
     return . Region $ listArray ((0,0),(numChunksInRow-1,numChunksInCol-1)) chunks
 
 instance Arbitrary CompressedChunk where
-  coarbitrary = undefined
   arbitrary = do
     liftM3 CompressedChunk arbitrary arbitrary arbitrary
 
 instance Arbitrary CompressionFormat where
-  coarbitrary = undefined
   arbitrary = elements [GZip,Zlib]
 
--- instance Arbitrary B.ByteString where
---   coarbitrary = undefined
---   arbitrary = do
---     len <- arbitrary :: Gen ByteLength
---     randStr <- arbitrary :: Gen [Word8]
---     -- Hmm. This is really not doing well.
---     let Right gen = newGen $ BS.concat $ B.toChunks $ B.pack randStr
---     let Right (bs, gen') = genBytes len gen :: Either GenError (BS.ByteString, SystemRandom)
---     return $ B.fromChunks [bs]
---
-instance Arbitrary B.ByteString where
-  coarbitrary = undefined
-  arbitrary = elements [1 `B.cons` B.empty, B.empty]
-
-instance Arbitrary Word8 where
-  coarbitrary = undefined
-  arbitrary = do
-    x <- arbitrary :: Gen Int
-    return . fromIntegral $ x `mod` 2^8
-
-instance Arbitrary Word32 where
-  coarbitrary = undefined
-  arbitrary = do
-    x <- arbitrary :: Gen Int
-    return . fromIntegral $ x `mod` 2^32
+instance Arbitrary L.ByteString where
+  arbitrary     = return $ L.cons 1 L.empty
+-- instance Arbitrary L.ByteString where
+--   arbitrary     = do
+--     bytes <- arbitrary :: Gen [Word8]
+--     guard $ (not.null) bytes
+--     return $ L.pack bytes

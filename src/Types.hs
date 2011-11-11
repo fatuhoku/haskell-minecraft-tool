@@ -30,10 +30,10 @@ data CompressedChunk = CompressedChunk {
   compressedChunkNbt :: B.ByteString,
   compressedChunkFormat :: CompressionFormat,
   compressedChunkTimestamp :: Timestamp }
-  deriving (Eq)
-
-instance Show CompressedChunk where
-  show _ = "cc"
+  deriving (Eq,Show)
+--  deriving (Eq)
+-- instance Show CompressedChunk where
+--   show (CompressedChunk {compressedChunkNbt=nbt}) = "cc" ++ show (B.length nbt)
 
 data CompressionFormat = GZip | Zlib deriving (Eq, Show)
 

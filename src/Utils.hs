@@ -9,10 +9,10 @@ ftrace = flip trace
 -- Traces a value, accepting a message to display in front of the value.
 -- "Forks" the input to trace, and feeds it into the next function application
 vtrace :: (Show a) => String -> a -> a
-vtrace msg val = trace (msg ++ show val ++ "\n") val
+vtrace msg val = trace (msg ++ show val) val
 
 funtrace :: (Show a) => String -> (a -> String) -> [a] -> [a]
-funtrace msg f val = trace (msg ++ show (map f val) ++ "\n") val
+funtrace msg f val = trace (msg ++ show (map f val)) val
 
 -- Taken from hdirect, Utils
 -- Returns Just v when v satisfies predicate.

@@ -52,9 +52,9 @@ Test-Suite test-lshift-minecraft
                      pretty-show, lazysmallcheck, OddWord,
                      derive>=2.5.4, colour, array,
                      utility-ht, gd, haskell98, data-ordlist,
-                     list-extras, deepseq<=1.1.0.2, binary-strict,
-                     test-framework, test-framework-quickcheck,
-                     QuickCheck<=1.2.0.1, crypto-api, random
+                     list-extras, deepseq, binary-strict,
+                     test-framework, test-framework-quickcheck2,
+                     QuickCheck
 
 Executable lshift-minecraft
   -- .hs or .lhs file containing the Main module.
@@ -68,6 +68,8 @@ Executable lshift-minecraft
                      derive>=2.5.4, colour, array,
                      utility-ht, gd, data-ordlist, binary-strict
 
+                     
+  
   -- Modules not exported by this package.
   -- Other-modules:       
   
