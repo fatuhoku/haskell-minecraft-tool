@@ -24,16 +24,21 @@ import System.IO
 --   Nothing are chunks that have not been generated yet.
 --   Just chunks are those that have relevant data in the file.
 --   The data is kept uncompressed unless it is needed.
-data Region = Region (Array (X,Z) (Maybe CompressedChunk)) deriving (Eq,Show)
+data Region = Region (Array (X,Z) (Maybe CompressedChunk))
+--  deriving (Eq,Show)
+  deriving (Eq)
+instance Show Region where
+  show (Region reg) = show $ elems reg
 
 data CompressedChunk = CompressedChunk {
   compressedChunkNbt :: B.ByteString,
   compressedChunkFormat :: CompressionFormat,
   compressedChunkTimestamp :: Timestamp }
-  deriving (Eq,Show)
---  deriving (Eq)
--- instance Show CompressedChunk where
---   show (CompressedChunk {compressedChunkNbt=nbt}) = "cc" ++ show (B.length nbt)
+--  deriving (Eq,Show)
+  deriving (Eq)
+instance Show CompressedChunk where
+  show (CompressedChunk {compressedChunkNbt=nbt,compressedChunkFormat=format}) =
+    "l: "++ show (B.length nbt) ++ " f: " ++ show format
 
 data CompressionFormat = GZip | Zlib deriving (Eq, Show)
 

@@ -12,7 +12,6 @@ import Control.Monad
 import Utils
 import Types
 import Region
-import Constants
 
 tests = [
     testGroup "Properties" [
@@ -65,7 +64,7 @@ instance Arbitrary CompressionFormat where
   arbitrary = elements [GZip,Zlib]
 
 instance Arbitrary L.ByteString where
-  arbitrary     = return $ L.cons 1 L.empty
+  arbitrary     = elements [L.cons 100 $ L.cons 200 L.empty, L.cons 100 L.empty]
 -- instance Arbitrary L.ByteString where
 --   arbitrary     = do
 --     bytes <- arbitrary :: Gen [Word8]
