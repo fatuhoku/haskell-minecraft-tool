@@ -154,19 +154,23 @@ saveRegion directory (x,z) region = do
 --   boundaries.
 putRegion :: Region -> Put
 putRegion (Region region) = do
-  -- 1) We first compute the number of sectors required for each chunk; scan
-  -- over the list to give a tentative list of locations. However, we have to
+  -- 1) We get a list of compressed Chunks in the required index order.
+  let compressedChunks = (region !) <$> indices
+  -- 2) We extract from this the sector counts and the timestamps
+  let scs = sectorCountOf <$> compressedChunks :: [Word8]
+  let tss = timestampOf <$> compressedChunks :: [Timestamp]
+
+  -- 3) Scan over the list to give a tentative list of locations, making sure that we
   -- zero out the locations that represent null chunks (chunks with length zero)
-  -- 2) We fish out the timestamp information as well.
-  -- 3) Write this out as the file header...
-  -- 4) Then we start putting the chunk data, which works out the appropriate
+  let tentativeLocs = scanl (+) headerSizeInSectors (map fromIntegral scs) :: [Location]
+  let locs = fromIntegral <$> zipWith locationFilter tentativeLocs scs :: [Word32]
+
+  -- 4) Write this out as the file header...
+  put $ RegionFileHeader locs scs tss
+
+  -- 5) Then we start putting the chunk data, which works out the appropriate
   -- padding, etc.
-  let scs = (amap sectorCountOf region !) <$> indices :: [Word8]
-  let tempLocs = scanl (+) headerSizeInSectors (map fromIntegral scs) :: [Location]
-  let locs = fromIntegral <$> zipWith locationFilter tempLocs scs :: [Word32]
-  let timestamps = (amap timestampOf region !) <$> indices :: [Timestamp]
-  put $ RegionFileHeader locs scs timestamps
-  forM_ ((region !) <$> indices) putCompressedChunkData -- I must dereference it in the apporpriate way!
+  forM_ compressedChunks putCompressedChunkData -- I must dereference it in the apporpriate way!
   where
     -- We will need to set any locations that, after scanning, have a 0 sector
     -- count to zero.
@@ -245,7 +249,7 @@ getRegion = do
     getCompressedChunk Nothing _ = return Nothing
     getCompressedChunk (Just loc) ts = do
       -- 1) Skip ahead to the location we want.
-      bytesRead >>= \br -> skip $ fromIntegral (vtrace "Next location: " loc - vtrace "Bytes read: " (fromIntegral br))
+      bytesRead >>= \br -> skip $ fromIntegral (loc - (fromIntegral br))
       -- 2) Extract its compressed data
       (compFormat, compData) <- getCompressedChunkData loc
       return . Just $ CompressedChunk compData compFormat ts
@@ -258,5 +262,5 @@ getRegion = do
       let getChunkMeta = liftM2 (,) getWord32be get
       in do
         (byteCount, compressionFormat) <- getChunkMeta
-        bs <- getLazyByteString (vtrace "Reading bytes: " (fromIntegral byteCount))
+        bs <- getLazyByteString (fromIntegral byteCount)
         return (compressionFormat, bs)
