@@ -19,24 +19,15 @@ import Control.Monad
 import System.Directory
 import System.IO
 
+import Chunk
+import NBTExtras
 import Region
 import Types
+import Data.Array
 
-
--- These are constant dimensions
-chunkSizeX = 16
-chunkSizeY = 128
-chunkSizeZ = 16
-
--- Let's just run the load function and figure out what happens when I print
--- the region out twice. 
 main = do
-  region <- loadRegion "worlds/testworld" (0,0)
-  print region
-  print $ test region
+  undefined
 
-test :: Region -> Bool
-test r = (decode . encode) r == r
 -- We will need to solve the problem of displaying a m x n image
 -- directly on top of a player.
 --
@@ -76,53 +67,41 @@ loadLevel dir = do
       enc = encode dec
   return dec
 
-    
--- Given an NBT, we want to produce a 3D array, holding all that lovely data.
--- The byteArray is actually rather nicely given as a ByteString.
--- We just need a way of converting that bytestring into 3D array.
--- Extracting the Blocks tag shouldn't be too difficult.
---
--- We can access a block's location by the 
--- unsigned char BlockID = Blocks[ y + z * ChunkSizeY(=128) + x * ChunkSizeY(=128) * ChunkSizeZ(=16) ];
-loadChunk :: NBT -> B.ByteString
-loadChunk (CompoundTag (Just "Level") ltags) =
-  let (ByteArrayTag _ bsLength blocks) = fromJust $ maybeBlocksTag
-  in blocks
-  where
-    maybeBlocksTag = find (("Blocks" ==) . fromJust . getName) ltags
-
-
--- TODO Write the function that would apply a cell replacement to the
--- chunk data bytestrings.
-applyReplacement :: CellReplacement -> ChunkData -> ChunkData
-applyReplacement (CR (x,y,z) id did) cd = error "applyReplacement: not implemented"
-
---  The relevant Python code for the above is:
---  block = 
---    mcrfile.seek(block)
---    offset, length = unpack(">IB", "\0"+mcrfile.read(4))
---    if offset:
---        mcrfile.seek(offset*4096)
---        bytecount, compression_type = unpack(
---                ">IB", mcrfile.read(5))
---        data = mcrfile.read(bytecount-1)
---        decompressed = decompress(data)
---        nbtfile = NBTFile(buffer=StringIO(decompressed))
---        return nbtfile
---    else:
---        return None
-
 -- Let's write code to put a white wool block 5 squares above the players'
 -- head. fn points to a filepath.
 -- - identify the exact region in which the player stands
 -- - Read the file and seek to the appropriate chunk
 putWool5MetresAbovePlayersHead :: FilePath -> IO ()
 putWool5MetresAbovePlayersHead fn = do
-  dec <- loadLevel "worlds/testworld/level.dat"
-  let coord = getPlayerCoords dec
-  -- let pcoord = toRegionCoords . toChunkCoords $ coord
-  return () -- TODO
+  p@(px,pz,py) <- return . getPlayerCoords =<< loadLevel (testWorld++"level.dat")
+  let rCoord = toRegionCoords . toChunkCoords $ p
+  withRegion testWorld rCoord (f p)
+  where
+    testWorld = "worlds/testworld/"
+    f = setWool White
 
+-- TODO I wonder if any of these lines of code would be easier to write
+-- with a generic zipper library such as syz?
+
+-- We require that edits are made in the following form:
+-- [(i,CompressedChunk)]
+setWool :: WoolColour -> CellCoords -> Region -> Region
+setWool colour cell (Region region) =
+  Region $ region // setWool' colour cell region
+
+-- A list of re-mappings. We don't care about the original state of the chunk
+setWool' :: WoolColour -> CellCoords -> Array ChunkCoords (Maybe CompressedChunk)
+         -> [(ChunkCoords, Maybe CompressedChunk)]
+setWool' colour cell region = [(chunk, fmap (setWool'' colour cell chunk) (region ! chunk))]
+  where
+    chunk = toChunkCoords cell
+
+-- Setting wool on an undefined chunk just does nothing.
+setWool'' :: WoolColour -> CellCoords -> ChunkCoords -> CompressedChunk -> CompressedChunk
+setWool'' colour cell chunk cc = withChunk cc (setWool''' colour cell)
+
+setWool''' :: WoolColour -> CellCoords -> Chunk -> Chunk
+setWool''' colour cell nbt = undefined
 
 -- The way to recover the player's position (Spawn{X,Y,Z} coordinates)
 -- from the saved game file is as follows:
@@ -154,36 +133,3 @@ getPlayerCoords (CompoundTag (Just "" ) tags) =
     isPlayerTag _ = False
 getPlayerCoords _ = error "Invalid level.dat NBT: does not begin with Data CompoundTag"
 
-toRegionCoords :: ChunkCoords -> RegionCoords
-toRegionCoords (x,z) = (chunkToRegion x, chunkToRegion z)
-  where
-    chunkToRegion n = floor (fromIntegral n/32.0)
-
-toChunkCoords :: CellCoords -> ChunkCoords
-toChunkCoords (x,_,z) = (cellToChunk x, cellToChunk z)
-  where
-    cellToChunk n = floor (fromIntegral n/16.0)
-
-toChunkIndex :: CellCoords -> ChunkIndex
-toChunkIndex (x,y,z) = y + z * chunkSizeY + x * chunkSizeY * chunkSizeZ
-
--- We can express the boundary positions of the rectangle ...
-
-getName :: NBT -> Maybe String
-getName EndTag = Nothing
-getName (ByteTag      name _) = name
-getName (ShortTag     name _) = name
-getName (IntTag       name _) = name
-getName (LongTag      name _) = name
-getName (FloatTag     name _) = name
-getName (DoubleTag    name _) = name
-getName (ByteArrayTag name _ _) = name
-getName (StringTag    name _ _) = name
-getName (ListTag      name _ _ _) = name
-getName (CompoundTag  name _) = name
-
-getInt (IntTag _ n) = fromIntegral n
-getInt t = error $ printf "getInt: %s is not an IntTag." (show t)
-
-compoundContents (CompoundTag _ contents) = contents
-compoundContents _ = error "Not CompoundTag"

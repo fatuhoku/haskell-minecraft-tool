@@ -7,6 +7,9 @@ module Region where
  -
  - This is implemented as a Binary instance, providing the encode and decode
  - functions.
+ -
+ - TODO: Produce a 'world' abstraction that is an array of regions.
+ - This may be overkill, however.
  - -}
 import qualified Codec.Compression.GZip as GZip
 import qualified Codec.Compression.Zlib as Zlib
@@ -41,7 +44,6 @@ import System.IO
 
 import Types
 import Utils
--- import Constants
 
 -- Kilobytes to Bytes, and we define a 'sector' to be 4KiB
 kB = 1024
@@ -69,9 +71,9 @@ type Location = Int64
 -- Fully represents the 8KiB RegionFile's header in the region file.
 -- The location is given in 4KiB sectors.
 data RegionFileHeader = RegionFileHeader {
-  rfHdrLocations :: [Word32],
+  rfHdrLocations :: [Word32], -- wrapping over a Word24 really.
   rfHdrSectorCounts :: [Word8],
-  rfHdrTimestamps :: [Timestamp]
+  rfHdrTimestamps :: [Timestamp] -- synonym for Word32
   }
 
 -- I suspect what's happening is that the x and z components are being swapped
@@ -97,7 +99,6 @@ instance Binary RegionFileHeader where
       (locs,scs) <- liftM unzip $ replicateM numChunksInRegion getLocationEntry
       tss <- replicateM numChunksInRegion getTimestamp
       return $ RegionFileHeader locs scs tss 
-        
 
 instance Binary CompressionFormat where
   get = getWord8 >>= \n -> return $ g n
@@ -108,7 +109,9 @@ instance Binary CompressionFormat where
   put GZip = putWord8 1
   put Zlib = putWord8 2
   
+{- WORLD EDIT FUNCTIONS -}
 
+-- Wrap a transformation into the region. 
 withRegion :: WorldDirectory -> RegionCoords -> (Region -> Region) -> IO ()
 withRegion directory coords trans = do
   region <- loadRegion directory coords
@@ -120,38 +123,18 @@ loadRegion directory (x,z) = do
   let filename = printf "r.%d.%d.mcr" x z :: String
   decodeFile (printf "%s/region/%s" directory filename)
 
+-- Saves a region in the world directory, given a particular region coordinate.
 saveRegion :: WorldDirectory -> RegionCoords -> Region -> IO ()
 saveRegion directory (x,z) region = do
   let filename = printf "r.%d.%d.mcr" x z :: String
   encodeFile (printf "%s/region/%s" directory filename) region
 
--- TODO Modifying block data (especially adding a lot of detail) 
--- can cause an inflation in the size of the chunk data. When stored again
--- in the region file, this may mess up offsets in the header. 
--- The entire region file should be read, understood, before its chunks are
--- modified and the file as a whole re-written out into the file. 
 
--- | Returns an action in the Put monad that encodes a Region as a ByteString
--- When writing out regions, the locations need not be contiguous. Minecraft
--- shouldn't care about the actual locations, just that the locations header
--- reports the correct bytes.
--- There are several components to writing a chunk:
---    necessary info: (ByteString [compressed NBT],compressed size) 
---
--- - For all associations array (in index order)   Array ((X,Z), Maybe CompressedChunk)
--- - Compress the NBT into a relevant bytestrings...   [((X,Z), Maybe ByteString)] 
---   - Extract the timestamps on each coordinate ... I will need them.
---     We take the liberty of putting a 0 timestamp for null chunks.
---   - Find the size of the resultant compressed bytestring. (B.length)
---   - Compute from this list a list of rounded, and not-rounded lengths.
---     There must be 4KiB alignment in the output!  ()
--- - Scan over this list to produce the list of locations for our region file
---   header
--- - Scan across the sizes of the bytestrings to get the locations header.
--- - Write the locations part of the header.
--- - Write the timestamps part of the header. (largely unchanged!)
--- - Write individual bytestrings in order of their index, aligning at 4KiB
---   boundaries.
+{- SERIALIZATION FUNCTIONS -}
+
+-- | Returns an action in the Put monad that serializes a Region into a byte
+-- string. Chunks are aligned to 4KiB "sectors", and padding is used for space
+-- that is not used by chunk data.
 putRegion :: Region -> Put
 putRegion (Region region) = do
   -- 1) We get a list of compressed Chunks in the required index order.
@@ -264,3 +247,9 @@ getRegion = do
         (byteCount, compressionFormat) <- getChunkMeta
         bs <- getLazyByteString (fromIntegral byteCount)
         return (compressionFormat, bs)
+
+-- Convert from chunk coordinates to region coordinates
+toRegionCoords :: ChunkCoords -> RegionCoords
+toRegionCoords (x,z) = (chunkToRegion x, chunkToRegion z)
+  where
+    chunkToRegion n = floor (fromIntegral n/32.0)

@@ -1,9 +1,15 @@
+{-# LANGUAGE TemplateHaskell #-}
 module Types where
 
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.UTF8 as UTF8 ( fromString, toString )
 import Data.Binary -- ( Binary (..), decode, encode )
 import Data.Binary.Get
+-- import Data.Data
+-- import Data.Typeable
+-- import Data.DeriveTH
+-- import Data.Derive.Data
+-- import Data.Derive.Typeable
 import Data.List
 import Data.Maybe
 import Data.NBT
@@ -18,17 +24,13 @@ import Control.Monad
 import System.Directory
 import System.IO
 
-
 -- Represents the contents of a region file.
 --   A region is an array of possible chunks;
 --   Nothing are chunks that have not been generated yet.
 --   Just chunks are those that have relevant data in the file.
 --   The data is kept uncompressed unless it is needed.
 data Region = Region (Array (X,Z) (Maybe CompressedChunk))
---  deriving (Eq,Show)
-  deriving (Eq)
-instance Show Region where
-  show (Region reg) = show $ elems reg
+  deriving (Eq,Show)
 
 data CompressedChunk = CompressedChunk {
   compressedChunkNbt :: B.ByteString,
@@ -38,27 +40,32 @@ data CompressedChunk = CompressedChunk {
   deriving (Eq)
 instance Show CompressedChunk where
   show (CompressedChunk {compressedChunkNbt=nbt,compressedChunkFormat=format}) =
-    "l: "++ show (B.length nbt) ++ " f: " ++ show format
+    "l: "++ show (B.length nbt)
 
 data CompressionFormat = GZip | Zlib deriving (Eq, Show)
 
 type X = Int -- X coordinate type
+type Y = Int -- Z coordinate type
 type Z = Int -- Z coordinate type
 type Timestamp = Word32
-type RegionCoords = (Int, Int)
-type ChunkCoords = (Int, Int)
-type CellCoords = (Int, Int, Int)
+type RegionCoords = (X, Z)
+type ChunkCoords = (X, Z)
+type CellCoords = (X, Z, Y)
 type WorldDirectory = FilePath
 
 type Chunk = NBT
-type ChunkIndex = Int
+type ChunkIndex = Int -- This is a bit outdated...
+type Byte = Word8
+type Nybble = Word8 -- Waps a Nybble
+type BlockId = Byte
+type BlockDatum = Nybble -- Wraps a Word4
 
 -- A pair of bytestrings
 --  - the array of BlockIDs (1 byte per block)
---  - the array of DataIDs  (1 nibble per block)
+--  - the array of DataIDs  (1 nybble per block)
 data ChunkData = ChunkData {
   blockIds :: B.ByteString,
-  dataIds :: B.ByteString
+  dataIds :: B.ByteString    -- NybbleString really.
   }
 
 type DataType = String
@@ -66,11 +73,11 @@ type DataType = String
 
 -- A cell replacement represents the change of blocktype at some position
 -- in the game world to to the specified BlockType.
-data CellReplacement = CR {
-  cell ::  CellCoords,
-  blockId :: BlockType,
-  dataId  :: DataType
-  }
+-- data CellReplacement = CR {
+--   cell ::  CellCoords,
+--   blockId :: BlockType,
+--   dataId  :: DataType
+--   }
 
 data BlockType = Wool
 
@@ -140,3 +147,23 @@ instance Binary WoolColour where
   put Black     = put (15:: Word16)
 
 type WoolColourArray = Array (Int,Int) WoolColour
+
+
+----------------------------
+-- SYB TH Derivations
+----------------------------
+-- The most important is deriving a Data instance for NBT such that
+-- scrap your zippers can work on it.
+-- $(derive makeData ''NBT)
+-- $(derive makeTypeable ''NBT)
+-- $(derive makeData ''TagType)
+-- $(derive makeTypeable ''TagType)
+-- 
+-- $(derive makeData ''Region)
+-- $(derive makeTypeable ''Region)
+-- $(derive makeData ''CompressedChunk)
+-- $(derive makeTypeable ''CompressedChunk)
+-- -- $(derive makeData ''Chunk)
+-- -- $(derive makeTypeable ''Chunk)
+-- $(derive makeData ''CompressionFormat)
+-- $(derive makeTypeable ''CompressionFormat)

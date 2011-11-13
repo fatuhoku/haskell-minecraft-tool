@@ -1,8 +1,10 @@
 module Utils where
 
-import Data.Monoid
 import Text.Printf
 import Debug.Trace
+import Types
+import Data.Bits
+import Data.Monoid
 
 ftrace = flip trace
 
@@ -20,3 +22,15 @@ toMaybe :: (a -> Bool) -> a -> Maybe a
 toMaybe p x
   | p x  = Just x
 	| otherwise = Nothing
+
+-- Unpacks Byte to a pair of nybbles.
+toNybbles :: Byte -> (Nybble,Nybble)
+toNybbles b = (b `shiftR` 4, b `mod` (2^4))
+
+-- Precondition is that both input nybbles need to be under 128.
+fromNybbles :: (Nybble,Nybble) -> Byte 
+fromNybbles (n1,n2) = (n1 `shiftL` 4) + (n2 `mod` (2^4))
+
+tupleToList :: (a,a) -> [a]
+tupleToList (a,b) = [a,b]
+
