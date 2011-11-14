@@ -101,7 +101,24 @@ setWool'' :: WoolColour -> CellCoords -> ChunkCoords -> CompressedChunk -> Compr
 setWool'' colour cell chunk cc = withChunk cc (setWool''' colour cell)
 
 setWool''' :: WoolColour -> CellCoords -> Chunk -> Chunk
-setWool''' colour cell nbt = undefined
+setWool''' colour cell (CompoundTag (Just "Level") nbts) =
+  let zipper = fromList nbts
+  let zipper2 = moveToTag "Blocks" zipper
+
+  let (Just (ByteArrayTag _ len bs)) = find (((Just "Blocks")==).getName) nbts
+  where
+    -- We move the zipper repeatedly until we find a tag named the one
+    -- we want along a list. This movement is only horizontal.
+    -- TODO Investigate in to deriving zippers that actually look vaguely
+    -- useable. It's the summation of the moveToTag attempts along the entire
+    -- list.
+    moveToTag :: String -> [NBT] -> Maybe (Zipper NBT)
+    moveToTag name nbt = moveToTag' name $ fromList nbt
+
+    moveToTag' :: String -> Zipper NBT -> Maybe (Zipper NBT)
+    moveToTag' name nbt = case safeCursor nbt of
+      Nothing -> Nothing
+      Just tag -> if getName tag == name then nbt else moveToTag' name $ right nbt
 
 -- The way to recover the player's position (Spawn{X,Y,Z} coordinates)
 -- from the saved game file is as follows:

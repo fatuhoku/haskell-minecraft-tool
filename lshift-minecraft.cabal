@@ -66,7 +66,8 @@ Executable lshift-minecraft
                      bytestring, zlib, directory,
                      pretty-show, lazysmallcheck, OddWord,
                      derive>=2.5.4, colour, array,
-                     utility-ht, gd, data-ordlist, binary-strict
+                     utility-ht, gd, data-ordlist, binary-strict,
+                     ListZipper
 
                      
   

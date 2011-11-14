@@ -25,7 +25,6 @@ import Data.Bits
 import Data.Function
 import Data.Int
 import Data.List
-import Data.List.Ordered
 import Data.Maybe
 import Data.NBT
 import Data.Tuple.HT
