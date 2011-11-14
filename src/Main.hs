@@ -102,10 +102,8 @@ setWool'' colour cell chunk cc = withChunk cc (setWool''' colour cell)
 
 setWool''' :: WoolColour -> CellCoords -> Chunk -> Chunk
 setWool''' colour cell (CompoundTag (Just "Level") nbts) =
-  let zipper = fromList nbts
-  let zipper2 = moveToTag "Blocks" zipper
-
-  let (Just (ByteArrayTag _ len bs)) = find (((Just "Blocks")==).getName) nbts
+  let zipper2 = moveToTag "Blocks" nbts in undefined
+  -- let (Just (ByteArrayTag _ len bs)) = find (((Just "Blocks")==).getName) nbts
   where
     -- We move the zipper repeatedly until we find a tag named the one
     -- we want along a list. This movement is only horizontal.
