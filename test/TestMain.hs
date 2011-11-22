@@ -22,6 +22,9 @@ tests = [
 {- Properties -}
 -- I want a function that would tell me what part of the region is not the same.
 -- One of the elements must necessarily be different.
+-- TODO
+-- How many times is this property checked? I would like it checked 100
+-- times.
 prop_decEncRegion :: Region -> Bool
 prop_decEncRegion r@(Region reg) =
   let rt@(Region roundTrip) = (decode . encode) r
