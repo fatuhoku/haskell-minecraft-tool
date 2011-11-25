@@ -69,8 +69,19 @@ Executable lshift-minecraft
                      utility-ht, gd, data-ordlist, binary-strict,
                      ListZipper
 
-                     
+Executable roundtrip
+  -- .hs or .lhs file containing the Main module.
+     Main-is:        RegionRoundTrip.hs
+     Hs-Source-Dirs: src
   
+  -- Packages needed in order to build this package.
+     Build-depends:  base, nbt, utf8-string, binary,
+                     bytestring, zlib, directory,
+                     pretty-show, lazysmallcheck, OddWord,
+                     derive>=2.5.4, colour, array,
+                     utility-ht, gd, data-ordlist, binary-strict,
+                     ListZipper
+
   -- Modules not exported by this package.
   -- Other-modules:       
   

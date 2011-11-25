@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeSynonymInstances #-}
 module Chunk where
 
 import qualified Codec.Compression.GZip as GZip
@@ -69,7 +70,7 @@ instance Binary BlockData where
 
 {- CHUNK EDIT FUNCTIONS -}
 -- Does not update timestamps! Uses the same compression method!
-withChunk :: CompressedChunk -> (Chunk -> Chunk) -> CompressedChunk
+withChunk :: CompressedChunk -> (NBT -> NBT) -> CompressedChunk
 withChunk cc@(CompressedChunk chunkData format ts) f =
   mapCc (compressWith format.encode.f.decode.decompressWith format) cc
   where 
