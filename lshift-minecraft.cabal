@@ -67,7 +67,7 @@ Executable lshift-minecraft
                      pretty-show, lazysmallcheck, OddWord,
                      derive>=2.5.4, colour, array,
                      utility-ht, gd, data-ordlist, binary-strict,
-                     ListZipper
+                     ListZipper, syz, syb
 
 Executable roundtrip
   -- .hs or .lhs file containing the Main module.
@@ -80,7 +80,20 @@ Executable roundtrip
                      pretty-show, lazysmallcheck, OddWord,
                      derive>=2.5.4, colour, array,
                      utility-ht, gd, data-ordlist, binary-strict,
-                     ListZipper
+                     ListZipper, syz, syb
+
+Executable oneblock
+  -- .hs or .lhs file containing the Main module.
+     Main-is:        OneWoolBlock.hs
+     Hs-Source-Dirs: src
+  
+  -- Packages needed in order to build this package.
+     Build-depends:  base, nbt, utf8-string, binary,
+                     bytestring, zlib, directory,
+                     pretty-show, lazysmallcheck, OddWord,
+                     derive>=2.5.4, colour, array,
+                     utility-ht, gd, data-ordlist, binary-strict,
+                     ListZipper, syz, syb
 
   -- Modules not exported by this package.
   -- Other-modules:       

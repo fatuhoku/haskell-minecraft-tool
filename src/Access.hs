@@ -38,8 +38,9 @@ value = undefined
 -- We will just leave all the timestamps the same as before, for simplicity.
 -- We accept a number of transformations that would modify the NBT in many
 -- ways...
-updateBlocks :: [NBT -> NBT] -> Chunk -> Chunk
-updateBlocks f = everywhere $ mkT $ foldr1 (.) f
+-- TODO move foldr1 (.) fs into its own function 'compose'
+updateChunk :: [NBT -> NBT] -> Chunk -> Chunk
+updateChunk fs = everywhere $ mkT $ foldr1 (.) fs
 
 -------------------------------------------------
 -- START FUNCTIONS
@@ -66,6 +67,7 @@ setBlockId coord bid (ByteArrayTag (Just "Blocks") _ bs) =
   where
     setBlockId' (BlockIds arr) = BlockIds $ arr // [(coord,bid)]
 
+-- TODO Perform fusion on difference array differences.
 setBlockDatum :: CellCoords -> BlockDatum ->  NBT -> NBT
 setBlockDatum coord bid (ByteArrayTag (Just "Data") _ bs) = 
   let bids = decode bs :: BlockData in

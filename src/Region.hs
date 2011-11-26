@@ -110,23 +110,47 @@ instance Binary CompressionFormat where
   
 {- WORLD EDIT FUNCTIONS -}
 
+-- TODO Iron out the interface for accessing regions and region files
 -- Wrap a transformation into the region. 
 withRegion :: WorldDirectory -> RegionCoords -> (Region -> Region) -> IO ()
 withRegion directory coords trans = do
   region <- loadRegion directory coords
   saveRegion directory coords (trans region)
 
+-- Changes a region, keeping a backup of something.
+editRegion :: FilePath -> (Region -> Region) -> IO ()
+editRegion file f = do
+  let backupCopy = file ++ ".bak"
+  renameFile file backupCopy
+  rd <- openFile backupCopy ReadMode
+  wr <- openFile file WriteMode
+  contents <- B.hGetContents rd
+  let result = encode $ f (decode contents :: Region)
+  B.hPutStr wr result
+  hClose wr
+  hClose rd
+
+-- Find the original compressed chunk
+modifyRegion :: ChunkCoords -> (CompressedChunk -> CompressedChunk) -> Region -> Region
+modifyRegion coords f (Region arr) =
+  let mRegion = arr ! coords in
+  Region $ arr // [(coords, f <$> mRegion)]
+
+-- Computes the path to the region file given the world directory and the 
+-- coordinates.
+regionFilePath :: WorldDirectory -> RegionCoords -> FilePath
+regionFilePath worldPath (x,z) =
+  let filename = printf "r.%d.%d.mcr" x z :: String in
+  printf "%s/region/%s" worldPath filename
+
 -- Read in a region given region coordinates.
 loadRegion :: WorldDirectory -> RegionCoords -> IO Region
-loadRegion directory (x,z) = do
-  let filename = printf "r.%d.%d.mcr" x z :: String
-  decodeFile (printf "%s/region/%s" directory filename)
+loadRegion worldPath coords = decodeFile $ regionFilePath worldPath coords
 
 -- Saves a region in the world directory, given a particular region coordinate.
 saveRegion :: WorldDirectory -> RegionCoords -> Region -> IO ()
-saveRegion directory (x,z) region = do
-  let filename = printf "r.%d.%d.mcr" x z :: String
-  encodeFile (printf "%s/region/%s" directory filename) region
+saveRegion worldPath coords region =
+  encodeFile (regionFilePath worldPath coords) region
 
 
 {- SERIALIZATION FUNCTIONS -}

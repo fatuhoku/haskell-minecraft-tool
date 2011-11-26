@@ -15,23 +15,10 @@ main = do
   args <- getArgs
   if (length args == 1)
     then
-      performRoundTrip $ head args
+      editRegion (head args) id
     else do
       putStrLn "Please pass in a file path to a Minecraft world." 
       printUsage
-
--- Move to backup copy; read from backup copy to produce new copy.
-performRoundTrip :: FilePath -> IO ()
-performRoundTrip file = do
-  let backupCopy = file ++ ".bak"
-  renameFile file backupCopy
-  rd <- openFile backupCopy ReadMode
-  wr <- openFile file WriteMode
-  contents <- B.hGetContents rd
-  let result = encode $ (decode contents :: Region)
-  B.hPutStr wr result
-  hClose wr
-  hClose rd
 
 printUsage :: IO ()
 printUsage = do

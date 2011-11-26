@@ -5,6 +5,7 @@ import qualified Codec.Compression.Zlib as Zlib
 
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.UTF8 as UTF8 ( fromString, toString )
+import Data.Array
 import Data.Binary -- ( Binary (..), decode, encode )
 import Data.Binary.Get
 import Data.List
@@ -23,7 +24,7 @@ import Chunk
 import NBTExtras
 import Region
 import Types
-import Data.Array
+import Level
 
 main = do
   undefined
@@ -57,52 +58,43 @@ main2 = do
   putStrLn $ "-----------------------------"
   putStrLn $ show coord
 
--- Loads a level.dat file given the saved game directory.
-loadLevel :: WorldDirectory -> IO NBT
-loadLevel dir = do
-  let fn = dir ++ "/level.dat"
-  fileL <- GZip.decompress <$> B.readFile fn
-  let file = B.pack (B.unpack fileL)
-      dec = (decode file :: NBT)
-      enc = encode dec
-  return dec
 
 -- Let's write code to put a white wool block 5 squares above the players'
 -- head. fn points to a filepath.
 -- - identify the exact region in which the player stands
 -- - Read the file and seek to the appropriate chunk
-putWool5MetresAbovePlayersHead :: FilePath -> IO ()
-putWool5MetresAbovePlayersHead fn = do
-  p@(px,pz,py) <- return . getPlayerCoords =<< loadLevel (testWorld++"level.dat")
-  let rCoord = toRegionCoords . toChunkCoords $ p
-  withRegion testWorld rCoord (f p)
-  where
-    testWorld = "worlds/testworld/"
-    f = setWool White
+-- putWool5MetresAbovePlayersHead :: FilePath -> IO ()
+-- putWool5MetresAbovePlayersHead fn = do
+--   p@(px,pz,py) <- return . getPlayerCoords =<< loadLevel (testWorld++"level.dat")
+--   let rCoord = toRegionCoords . toChunkCoords $ p
+--   withRegion testWorld rCoord (f p)
+--   where
+--     testWorld = "worlds/testworld/"
+--     f = setWool White
 
 -- TODO I wonder if any of these lines of code would be easier to write
 -- with a generic zipper library such as syz?
 
 -- We require that edits are made in the following form:
 -- [(i,CompressedChunk)]
-setWool :: WoolColour -> CellCoords -> Region -> Region
-setWool colour cell (Region region) =
-  Region $ region // setWool' colour cell region
-
--- A list of re-mappings. We don't care about the original state of the chunk
-setWool' :: WoolColour -> CellCoords -> Array ChunkCoords (Maybe CompressedChunk)
-         -> [(ChunkCoords, Maybe CompressedChunk)]
-setWool' colour cell region = [(chunk, fmap (setWool'' colour cell chunk) (region ! chunk))]
-  where
-    chunk = toChunkCoords cell
-
--- Setting wool on an undefined chunk just does nothing.
-setWool'' :: WoolColour -> CellCoords -> ChunkCoords -> CompressedChunk -> CompressedChunk
-setWool'' colour cell chunk cc = withChunk cc (setWool''' colour cell)
-
-setWool''' :: WoolColour -> CellCoords -> Chunk -> Chunk
-setWool''' colour cell (CompoundTag (Just "Level") nbts) =
-  let zipper2 = undefined "Blocks" nbts in undefined
+-- setWool :: WoolColour -> CellCoords -> Region -> Region
+-- setWool colour cell (Region region) =
+--   Region $ region // setWool' colour cell region
+-- 
+-- -- A list of re-mappings. We don't care about the original state of the chunk
+-- setWool' :: WoolColour -> CellCoords -> Array ChunkCoords (Maybe CompressedChunk)
+--          -> [(ChunkCoords, Maybe CompressedChunk)]
+-- setWool' colour cell region = [(chunk, fmap (setWool'' colour cell chunk) (region ! chunk))]
+--   where
+--     chunk = toChunkCoords cell
+-- 
+-- -- Setting wool on an undefined chunk just does nothing.
+-- setWool'' :: WoolColour -> CellCoords -> ChunkCoords -> CompressedChunk -> CompressedChunk
+-- setWool'' colour cell chunk = modifyCc (setWool''' colour cell) cc 
+-- 
+-- setWool''' :: WoolColour -> CellCoords -> Chunk -> Chunk
+-- setWool''' colour cell (CompoundTag (Just "Level") nbts) =
+--   let zipper2 = undefined "Blocks" nbts in undefined
 
 -- The way to recover the player's position (Spawn{X,Y,Z} coordinates)
 -- from the saved game file is as follows:
@@ -118,19 +110,4 @@ setWool''' colour cell (CompoundTag (Just "Level") nbts) =
 -- Then, we determine what blocks we will need to render to by using a
 -- rectangle class.
  
--- TODO Use a Zipper for the NBT structure instead of a hard-coded path.
-getPlayerCoords :: NBT -> (Int, Int, Int)
-getPlayerCoords (CompoundTag (Just "" ) tags) =
-  let [(CompoundTag (Just "Data") dtags)] = tags in
-  case findPlayerTag dtags of
-    Nothing -> error "Player tag not found."
-    Just ptag -> let ptagContents = compoundContents ptag in
-      let [x,y,z] = map getInt $ filter (isPrefixOf "Spawn" . fromJust . getName)
-                      $ filter (isJust . getName) ptagContents
-      in (x,y,z)
-  where
-    findPlayerTag = find isPlayerTag
-    isPlayerTag (CompoundTag (Just "Player") _) = True
-    isPlayerTag _ = False
-getPlayerCoords _ = error "Invalid level.dat NBT: does not begin with Data CompoundTag"
 

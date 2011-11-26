@@ -3,17 +3,17 @@ module Types where
 
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.UTF8 as UTF8 ( fromString, toString )
-import Data.Binary -- ( Binary (..), decode, encode )
-import Data.Binary.Get
 -- import Data.Data
--- import Data.Typeable
--- import Data.DeriveTH
 -- import Data.Derive.Data
 -- import Data.Derive.Typeable
+-- import Data.DeriveTH
+-- import Data.Typeable
+import Data.Array
+import Data.Binary -- ( Binary (..), decode, encode )
+import Data.Binary.Get
 import Data.List
 import Data.Maybe
 import Data.NBT
-import Data.Array
 
 import qualified Text.Show.Pretty as Pr
 import Text.Printf
