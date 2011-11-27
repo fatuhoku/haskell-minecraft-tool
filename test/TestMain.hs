@@ -6,7 +6,7 @@ import Test.Framework.Providers.QuickCheck2
 import Test.QuickCheck
 import Data.Binary
 import qualified Data.ByteString.Lazy as L
-import System
+-- import System
 import Control.Monad
 
 import Utils

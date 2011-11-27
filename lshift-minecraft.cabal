@@ -42,45 +42,45 @@ Build-type:          Simple
 -- Constraint on the version of Cabal needed to build this package.
 Cabal-version:       >=1.9.2
 
-Test-Suite test-lshift-minecraft
-     Type:           exitcode-stdio-1.0
-     Hs-Source-Dirs: src,test
---     Test-Module:    Test.LShiftMinecraft
-     Main-is:        TestMain.hs
-     Build-Depends:  base, nbt, utf8-string, binary,
-                     bytestring, zlib, directory,
-                     pretty-show, lazysmallcheck, OddWord,
-                     derive>=2.5.4, colour, array,
-                     utility-ht, gd, haskell98, data-ordlist,
-                     list-extras, binary-strict,
-                     test-framework, test-framework-quickcheck2,
-                     QuickCheck
+-- Test-Suite test-lshift-minecraft
+--      Type:           exitcode-stdio-1.0
+--      Hs-Source-Dirs: src,test
+-- --     Test-Module:    Test.LShiftMinecraft
+--      Main-is:        TestMain.hs
+--      Build-Depends:  base, nbt, utf8-string, binary,
+--                      bytestring, zlib, directory,
+--                      pretty-show, lazysmallcheck, OddWord,
+--                      derive>=2.5.4, colour, array,
+--                      utility-ht, gd, data-ordlist,
+--                      list-extras, binary-strict,
+--                      test-framework, test-framework-quickcheck2,
+--                     QuickCheck
 
-Executable lshift-minecraft
-  -- .hs or .lhs file containing the Main module.
-     Main-is:        Main.hs
-     Hs-Source-Dirs: src
-  
-  -- Packages needed in order to build this package.
-     Build-depends:  base, nbt, utf8-string, binary,
-                     bytestring, zlib, directory,
-                     pretty-show, lazysmallcheck, OddWord,
-                     derive>=2.5.4, colour, array,
-                     utility-ht, gd, data-ordlist, binary-strict,
-                     ListZipper, syz, syb
+-- Executable lshift-minecraft
+--   -- .hs or .lhs file containing the Main module.
+--      Main-is:        Main.hs
+--      Hs-Source-Dirs: src
+--   
+--   -- Packages needed in order to build this package.
+--      Build-depends:  base, nbt, utf8-string, binary,
+--                      bytestring, zlib, directory,
+--                      pretty-show, lazysmallcheck, OddWord,
+--                      derive>=2.5.4, colour, array,
+--                      utility-ht, gd, data-ordlist, binary-strict,
+--                      ListZipper, syz, syb
 
-Executable roundtrip
-  -- .hs or .lhs file containing the Main module.
-     Main-is:        RegionRoundTrip.hs
-     Hs-Source-Dirs: src
-  
-  -- Packages needed in order to build this package.
-     Build-depends:  base, nbt, utf8-string, binary,
-                     bytestring, zlib, directory,
-                     pretty-show, lazysmallcheck, OddWord,
-                     derive>=2.5.4, colour, array,
-                     utility-ht, gd, data-ordlist, binary-strict,
-                     ListZipper, syz, syb
+-- Executable roundtrip
+--   -- .hs or .lhs file containing the Main module.
+--      Main-is:        RegionRoundTrip.hs
+--      Hs-Source-Dirs: src
+--   
+--   -- Packages needed in order to build this package.
+--      Build-depends:  base, nbt, utf8-string, binary,
+--                      bytestring, zlib, directory,
+--                      pretty-show, lazysmallcheck, OddWord,
+--                      derive>=2.5.4, colour, array,
+--                      utility-ht, gd, data-ordlist, binary-strict,
+--                      ListZipper, syz, syb
 
 Executable oneblock
   -- .hs or .lhs file containing the Main module.

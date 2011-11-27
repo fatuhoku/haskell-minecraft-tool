@@ -5,6 +5,7 @@ import System.Environment
 import System.Directory
 import qualified Data.ByteString.Lazy as B
 import Data.Binary
+import Control.Monad
 
 import Types
 import Region
@@ -12,15 +13,20 @@ import Level
 import Chunk
 import Access
 
--- Take the file path given, read it in as a Region, encode
-main :: IO ()
 main = do
   args <- getArgs
-  if (length args == 1)
-    then oneBlock (head args)  
-    else do
-      putStrLn "Please pass in a file path to a Minecraft world." 
-      printUsage
+  putStrLn "Here are your arguments!:"
+  forM_ args putStrLn
+
+-- Take the file path given, read it in as a Region, encode
+-- main :: IO ()
+-- main = do
+--   args <- getArgs
+--   if (length args == 1)
+--     then oneBlock (head args)  
+--     else do
+--       putStrLn "Please pass in a file path to a Minecraft world." 
+--       printUsage
 
 -- We must define a path for the test world.
 oneBlock :: FilePath -> IO ()
