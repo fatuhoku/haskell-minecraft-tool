@@ -1,10 +1,11 @@
 module Utils where
 
-import Text.Printf
-import Debug.Trace
-import Types
 import Data.Bits
 import Data.Monoid
+import Debug.Trace
+import Text.Printf
+
+import Types
 
 ftrace = flip trace
 

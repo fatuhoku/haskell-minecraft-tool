@@ -29,7 +29,6 @@ import Data.Maybe
 import Data.NBT
 import Data.Tuple.HT
 import Data.Word
-import Data.Word.Odd
 import Debug.Trace
 
 import qualified Text.Show.Pretty as Pr
@@ -41,6 +40,7 @@ import Control.Monad
 import System.Directory
 import System.IO
 
+import Coords
 import Types
 import Utils
 
@@ -271,8 +271,3 @@ getRegion = do
         bs <- getLazyByteString (fromIntegral byteCount)
         return (compressionFormat, bs)
 
--- Convert from chunk coordinates to region coordinates
-toRegionCoords :: ChunkCoords -> RegionCoords
-toRegionCoords (x,z) = (chunkToRegion x, chunkToRegion z)
-  where
-    chunkToRegion n = floor (fromIntegral n/32.0)

@@ -1,32 +1,34 @@
 module Main where
 
-import System.IO
-import System.Environment
-import System.Directory
-import qualified Data.ByteString.Lazy as B
-import Data.Binary
 import Control.Monad
+import Data.Binary
+import Data.Maybe
+import System.Directory
+import System.Environment
+import System.IO
+import qualified Data.ByteString.Lazy as B
 
-import Types
-import Region
-import Level
-import Chunk
 import Access
+import Chunk
+import Coords
+import Level
+import Region
+import Types
 
-main = do
-  args <- getArgs
-  putStrLn "Here are your arguments!:"
-  forM_ args putStrLn
-
--- Take the file path given, read it in as a Region, encode
--- main :: IO ()
 -- main = do
 --   args <- getArgs
---   if (length args == 1)
---     then oneBlock (head args)  
---     else do
---       putStrLn "Please pass in a file path to a Minecraft world." 
---       printUsage
+--   putStrLn "Here are your arguments!:"
+--   forM_ args putStrLn
+
+-- Take the file path given, read it in as a Region, encode
+main :: IO ()
+main = do
+  args <- getArgs
+  if (length args == 1)
+    then oneBlock (head args)  
+    else do
+      putStrLn "Please pass in a file path to a Minecraft world." 
+      printUsage
 
 -- We must define a path for the test world.
 oneBlock :: FilePath -> IO ()
@@ -34,18 +36,19 @@ oneBlock fp = do
   [path] <- getArgs
 
   -- Just assume the path is valid.
-  dec <- loadLevel path
-  let plyrCoords = getPlayerCoords dec
+  level <- loadLevel path
+  let playerC = fromJust $ getPlayerCoords level
+
+  -- Compute the (chunk)-local cell coordinates
+  let (regionC, chunkC, locC) = toMultiCoords playerC
 
   -- edit the first region?
-  let chunkCoords = toChunkCoords plyrCoords
-  let regionCoords = toRegionCoords chunkCoords
   let woolId = 35
   let whiteDatum = 0 -- white colour
-  let updateBlocks = setBlockId (fiveBlocksAbove plyrCoords) woolId
-  let updateData = setBlockDatum (fiveBlocksAbove plyrCoords) whiteDatum
-  let updateRegion = modifyRegion chunkCoords $ modifyCc $ updateChunk [updateBlocks,updateData]
-  editRegion (regionFilePath path regionCoords) updateRegion
+  let updateBlocks = setBlockId (fiveBlocksAbove locC) woolId
+  let updateData = setBlockDatum (fiveBlocksAbove locC) whiteDatum
+  let updateRegion = modifyRegion chunkC $ modifyCc $ updateChunk [updateBlocks,updateData]
+  editRegion (regionFilePath path regionC) updateRegion
   where
     func' f (Region arr) = Region (f arr)
   

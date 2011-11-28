@@ -24,6 +24,8 @@ import Control.Monad
 import System.Directory
 import System.IO
 
+import Coords
+
 -- Represents the contents of a region file.
 --   A region is an array of possible chunks;
 --   Nothing are chunks that have not been generated yet.
@@ -44,17 +46,10 @@ instance Show CompressedChunk where
 
 data CompressionFormat = GZip | Zlib deriving (Eq, Show)
 
-type X = Int -- X coordinate type
-type Y = Int -- Z coordinate type
-type Z = Int -- Z coordinate type
 type Timestamp = Word32
-type RegionCoords = (X, Z)
-type ChunkCoords = (X, Z)
-type CellCoords = (X, Z, Y)
 type WorldDirectory = FilePath
 
 type Chunk = NBT
-type ChunkIndex = Int -- This is a bit outdated...
 type Byte = Word8
 type Nybble = Word8 -- Waps a Nybble
 type BlockId = Byte

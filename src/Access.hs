@@ -14,6 +14,7 @@ import Data.NBT
 import Data.Typeable
 import qualified Data.ByteString.Lazy as B
 
+import Coords
 import Chunk
 import Types
 
@@ -66,6 +67,7 @@ setBlockId coord bid (ByteArrayTag (Just "Blocks") _ bs) =
   ByteArrayTag (Just "Blocks") (fromIntegral $ B.length bids') bids'
   where
     setBlockId' (BlockIds arr) = BlockIds $ arr // [(coord,bid)]
+setBlockId _ _ nbt = nbt
 
 -- TODO Perform fusion on difference array differences.
 setBlockDatum :: CellCoords -> BlockDatum ->  NBT -> NBT
@@ -75,6 +77,7 @@ setBlockDatum coord bid (ByteArrayTag (Just "Data") _ bs) =
   ByteArrayTag (Just "Data") (fromIntegral $ B.length bids') bids'
   where
     setBlockDatum' (BlockData arr) = BlockData $ arr // [(coord,bid)]
+setBlockDatum _ _ nbt = nbt
 
 -------------------------------------------------
 -- END FUNCTIONS

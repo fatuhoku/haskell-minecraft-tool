@@ -9,19 +9,22 @@ import Data.Binary
 import Types
 import Region
 
--- Take the file path given, read it in as a Region, encode
+-- Take the file path given, read it in as a Region, do nothing with the region
+-- and encode then put the region back!
 main :: IO ()
 main = do
   args <- getArgs
-  if (length args == 1)
+  if (length args == 2)
     then
-      editRegion (head args) id
+      let [worldPath, regionCStr] = args
+          regionC = read regionCStr
+      in editRegion (regionFilePath worldPath regionC) id
     else do
-      putStrLn "Please pass in a file path to a Minecraft world." 
+      putStrLn "Please pass in a file path and the region coordinates." 
       printUsage
 
 printUsage :: IO ()
 printUsage = do
   putStr $ "Usage:" 
-  putStr $ "  roundtrip <<PATH_TO_WORLD>>"
+  putStr $ "  roundtrip <<PATH_TO_WORLD>> (regionX,regionZ)"
 

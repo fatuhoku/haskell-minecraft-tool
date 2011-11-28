@@ -14,17 +14,10 @@ import Data.List
 import Data.Maybe
 import Data.NBT
 
+import Coords
 import Types
 import Utils
 import Control.Applicative
--- import NBTExtras
-
--- These are constant dimensions
-chunkSizeX = 16
-chunkSizeY = 128
-chunkSizeZ = 16
-
-numCellsInChunk = chunkSizeX * chunkSizeY * chunkSizeZ
 
 {- CHUNK SERIALIZATION -}
 -- Fully represents the "Blocks" TAG_Byte_Array tag of the ChunkNBT.
