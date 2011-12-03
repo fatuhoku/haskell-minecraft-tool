@@ -9,11 +9,13 @@ import System.IO
 import qualified Data.ByteString.Lazy as B
 
 import Access
+import FileIO
 import Chunk
 import Coords
 import Level
 import Region
 import Types
+import World
 
 -- Take the file path given, read it in as a Region, encode
 main :: IO ()
@@ -27,13 +29,15 @@ main = do
 
 -- I need to test the block setting functionality.
 
+-- I should define a single kind of Region editing code.
 -- We must define a path for the test world.
-oneBlock :: FilePath -> IO ()
-oneBlock fp = do
-  [path] <- getArgs
+oneBlock :: WorldDirectory -> IO ()
+oneBlock dir = do
+  -- TODO this function isn't implemented yet!
+  -- (World (Level lvl) regions) <- loadWorld dir
 
   -- Just assume the path is valid.
-  level <- loadLevel path
+  (Level level) <- decodeFile (getPath dir (LevelPathParams ())) :: IO Level
   let playerC = fromJust $ getPlayerCoords level
 
   -- Compute the (chunk)-local cell coordinates
@@ -45,7 +49,7 @@ oneBlock fp = do
   let updateBlocks = setBlockId (fiveBlocksAbove locC) woolId
   let updateData = setBlockDatum (fiveBlocksAbove locC) whiteDatum
   let updateRegion = modifyRegion chunkC $ modifyCc $ updateChunk [updateBlocks,updateData]
-  editRegion (regionFilePath path regionC) updateRegion
+  edit (getPath dir (RegionPathParams regionC)) updateRegion
   where
     func' f (Region arr) = Region (f arr)
   

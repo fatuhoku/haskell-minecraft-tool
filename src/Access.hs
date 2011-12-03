@@ -14,6 +14,7 @@ import Data.NBT
 import Data.Typeable
 import qualified Data.ByteString.Lazy as B
 
+import Block
 import Coords
 import Chunk
 import Types

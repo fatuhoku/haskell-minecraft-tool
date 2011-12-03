@@ -1,15 +1,16 @@
 module Region where
-{- Reading and Writing Regions
+
+{- Reading, Editing and Writing Region files
  -
- - This file adds support for reading and writing Region files.
+ - This source file handles the reading, editing and writing Region files.
  - Reading involves parsing of the region file format, and presenting the
  - region as a <list of chunks>.
  -
- - This is implemented as a Binary instance, providing the encode and decode
- - functions.
+ - The Region file is treated as a very specific serialized form of a Region
+ - data structure, essentially an Array of CompressedChunks.
  -
- - TODO: Produce a 'world' abstraction that is an array of regions.
- - This may be overkill, however.
+ - TODO Could we possible remove the distinction between compressed and
+ - uncompressed chunk datas?
  - -}
 import qualified Codec.Compression.GZip as GZip
 import qualified Codec.Compression.Zlib as Zlib
@@ -36,9 +37,6 @@ import Text.Printf
 
 import Control.Applicative
 import Control.Monad
-
-import System.Directory
-import System.IO
 
 import Coords
 import Types
@@ -108,50 +106,14 @@ instance Binary CompressionFormat where
   put GZip = putWord8 1
   put Zlib = putWord8 2
   
-{- WORLD EDIT FUNCTIONS -}
+{- REGION EDIT FUNCTIONS -}
 
--- TODO Iron out the interface for accessing regions and region files
--- Wrap a transformation into the region. 
-withRegion :: WorldDirectory -> RegionCoords -> (Region -> Region) -> IO ()
-withRegion directory coords trans = do
-  region <- loadRegion directory coords
-  saveRegion directory coords (trans region)
-
--- Changes a region, keeping a backup of something.
-editRegion :: FilePath -> (Region -> Region) -> IO ()
-editRegion file f = do
-  let backupCopy = file ++ ".bak"
-  renameFile file backupCopy
-  rd <- openFile backupCopy ReadMode
-  wr <- openFile file WriteMode
-  contents <- B.hGetContents rd
-  let result = encode $ f (decode contents :: Region)
-  B.hPutStr wr result
-  hClose wr
-  hClose rd
 
 -- Find the original compressed chunk
 modifyRegion :: ChunkCoords -> (CompressedChunk -> CompressedChunk) -> Region -> Region
 modifyRegion coords f (Region arr) =
   let mRegion = arr ! coords in
   Region $ arr // [(coords, f <$> mRegion)]
-
--- Computes the path to the region file given the world directory and the 
--- coordinates.
-regionFilePath :: WorldDirectory -> RegionCoords -> FilePath
-regionFilePath worldPath (x,z) =
-  let filename = printf "r.%d.%d.mcr" x z :: String in
-  printf "%s/region/%s" worldPath filename
-
--- Read in a region given region coordinates.
-loadRegion :: WorldDirectory -> RegionCoords -> IO Region
-loadRegion worldPath coords = decodeFile $ regionFilePath worldPath coords
-
--- Saves a region in the world directory, given a particular region coordinate.
-saveRegion :: WorldDirectory -> RegionCoords -> Region -> IO ()
-saveRegion worldPath coords region =
-  encodeFile (regionFilePath worldPath coords) region
-
 
 {- SERIALIZATION FUNCTIONS -}
 

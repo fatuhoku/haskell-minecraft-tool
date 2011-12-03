@@ -29,6 +29,7 @@ import NBTExtras
 import Region
 import Types
 import Level
+import FileIO
 
 -- We will need to solve the problem of displaying a m x n image
 -- directly on top of a player.
@@ -56,12 +57,12 @@ main = do
               [] -> testWorld
               (x:_) -> x
 
-  level <- loadLevel path
-  let coord = getPlayerCoords level
-  putStrLn $ "-----------------------------"
-  putStrLn $ "- Pretty printing structure -" 
-  putStrLn $ "-----------------------------"
-  putStrLn $ Pr.ppShow level
+  (Level nbt) <- decodeFile path :: IO Level
+  let coord = getPlayerCoords nbt
+  putStrLn $ "---------------------------------"
+  putStrLn $ "- Pretty printing NBT structure -" 
+  putStrLn $ "---------------------------------"
+  putStrLn $ Pr.ppShow nbt
   putStrLn $ "-----------------------------"
   putStrLn $ "- Player coordinate         -" 
   putStrLn $ "-----------------------------"

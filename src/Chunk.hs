@@ -6,6 +6,7 @@ import qualified Codec.Compression.Zlib as Zlib
 
 import Control.Monad
 
+import Control.Applicative
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.UTF8 as UTF8 ( fromString, toString )
 import Data.Array hiding (indices)
@@ -14,10 +15,10 @@ import Data.List
 import Data.Maybe
 import Data.NBT
 
+import Block
 import Coords
 import Types
 import Utils
-import Control.Applicative
 
 {- CHUNK SERIALIZATION -}
 -- Fully represents the "Blocks" TAG_Byte_Array tag of the ChunkNBT.

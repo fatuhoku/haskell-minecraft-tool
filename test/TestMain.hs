@@ -1,21 +1,27 @@
 module Main where
 
+-- import System
+import Control.Monad
 import Data.Array
+import Data.Binary
 import Test.Framework
 import Test.Framework.Providers.QuickCheck2
 import Test.QuickCheck
-import Data.Binary
 import qualified Data.ByteString.Lazy as L
--- import System
-import Control.Monad
 
-import Utils
-import Types
+import Block
+import Coords
 import Region
+import Types
+import Utils
 
-tests = [
+testSuite :: Test
+testSuite = [
     testGroup "Properties" [
-        testProperty "Region: decode . encode == id" prop_decEncRegion
+        testProperty "propDecEncRegion" propDecEncRegion
+        testProperty "propDecEncBlockData" propDecEncBlockData
+        testProperty "propDecEncBlockIds" propDecEncBlockIds
+        -- testProperty "propPutBlockRegion" propPutBlockRegion
       ]
   ]
 
@@ -25,22 +31,31 @@ tests = [
 -- TODO
 -- How many times is this property checked? I would like it checked 100
 -- times.
-prop_decEncRegion :: Region -> Bool
-prop_decEncRegion r@(Region reg) =
+propDecEncRegion :: Region -> Bool
+propDecEncRegion r@(Region reg) =
   let rt@(Region roundTrip) = (decode . encode) r
       differingEntries = filter (\(a,b) -> snd a /= snd b) $ zip (assocs reg) (assocs roundTrip)
   in if rt /= r then error $ "The first 10 pairs of differing entries':" ++ show (take 10 differingEntries)
                     else True
 
+propDecEncBlockData bs = undefined
+propDecEncBlockIds bs = undefined
+
+-- Putting a block in a region will change it.
+-- Not just any arbitrary CellCoords will do here it must be Bounded.
+propPutBlockRegion :: Region -> CellCoords -> Block -> Bool
+propPutBlockRegion r@(Region reg) coords block = undefined
+
+
 -- Distribution.TestSuite requires that test frameworks (smallcheck, lazy-smallcheck)
 -- provide instances for classes defined in Distribution.TestSuite.
 --
--- cabal testsuite integration for lazysmallcheck is _not_ supported at the moment. 
+-- cabal testSuiteuite integration for lazysmallcheck is _not_ supported at the moment. 
 -- 
 -- Resorting to using exitcode-stdio mode for now. We will source a region file
 -- from the test world and conduct the decEncDec test on it.
 main :: IO ()
-main = defaultMain tests
+main = defaultMain testSuite
 
 -- INSTANCES --
 

@@ -6,8 +6,9 @@ import System.Directory
 import qualified Data.ByteString.Lazy as B
 import Data.Binary
 
-import Types
+import FileIO
 import Region
+import Types
 
 -- Take the file path given, read it in as a Region, do nothing with the region
 -- and encode then put the region back!
@@ -18,7 +19,8 @@ main = do
     then
       let [worldPath, regionCStr] = args
           regionC = read regionCStr
-      in editRegion (regionFilePath worldPath regionC) id
+          idRegion = id :: Region -> Region
+      in edit (getPath worldPath (RegionPathParams regionC)) idRegion
     else do
       putStrLn "Please pass in a file path and the region coordinates." 
       printUsage
