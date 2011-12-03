@@ -15,11 +15,6 @@ import Level
 import Region
 import Types
 
--- main = do
---   args <- getArgs
---   putStrLn "Here are your arguments!:"
---   forM_ args putStrLn
-
 -- Take the file path given, read it in as a Region, encode
 main :: IO ()
 main = do
@@ -29,6 +24,8 @@ main = do
     else do
       putStrLn "Please pass in a file path to a Minecraft world." 
       printUsage
+
+-- I need to test the block setting functionality.
 
 -- We must define a path for the test world.
 oneBlock :: FilePath -> IO ()

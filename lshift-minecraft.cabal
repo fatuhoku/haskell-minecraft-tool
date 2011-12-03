@@ -51,7 +51,7 @@ Test-Suite test-lshift-minecraft
                      bytestring, zlib, directory,
                      pretty-show, lazysmallcheck, OddWord,
                      derive>=2.5.4, colour, array,
-                     utility-ht, gd, data-ordlist,
+                     utility-ht, data-ordlist,
                      list-extras, binary-strict,
                      test-framework, test-framework-quickcheck2,
                      QuickCheck
@@ -92,7 +92,7 @@ Executable oneblock
                      bytestring, zlib, directory,
                      pretty-show,
                      derive>=2.5.4, colour, array,
-                     utility-ht, gd, data-ordlist, binary-strict,
+                     utility-ht, data-ordlist, binary-strict,
                      syz, syb
 
   -- Modules not exported by this package.
