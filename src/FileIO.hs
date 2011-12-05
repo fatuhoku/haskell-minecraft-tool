@@ -18,6 +18,7 @@ import Region
 import Types
 import Types
 import World
+import System.FilePath.Posix
 
 {- FileIO
  - This module contains all side-effectual functionality required to modify a
@@ -75,7 +76,14 @@ instance FileBacked Region where
 --   region <- loadRegion directory coords
 --   saveRegion directory coords (trans region)
 
-
 loadRegion :: WorldDirectory -> RegionCoords -> IO Region
-loadRegion dir coords = decodeFile $ getPath dir (RegionPathParams coords)
+loadRegion dir coords = decodeFile $ getRegionPath dir coords
 
+getRegionDir ::  WorldDirectory -> FilePath
+getRegionDir dir = dropFileName $ getRegionPath dir (0,0)
+
+getRegionPath ::  WorldDirectory -> RegionCoords -> FilePath
+getRegionPath dir coords = getPath dir (RegionPathParams coords)
+
+getLevelPath :: WorldDirectory -> FilePath
+getLevelPath dir = getPath dir $ LevelPathParams ()

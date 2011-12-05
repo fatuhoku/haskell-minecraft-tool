@@ -10,36 +10,68 @@ import Test.QuickCheck
 import qualified Data.ByteString.Lazy as L
 
 import Block
+import Chunk
 import Coords
 import Region
 import Types
 import Utils
 
-testSuite :: Test
-testSuite = [
-    testGroup "Properties" [
-        testProperty "propDecEncRegion" propDecEncRegion
+{- The LShift-Minecraft test suite.
+ -
+ - Properties and unit tests are tested here.
+ -}
+testSuite :: [Test]
+testSuite = [testProperties]
+
+{-
+ - Properties include checking the encoding and decoding of bytestrings
+ - yield identity.
+ -}
+testProperties :: Test
+testProperties =
+  testGroup "Properties" [
+        testProperty "propDecEncRegion" propDecEncRegion,
+        testProperty "propToFromNybbles" propToFromNybbles,
+        testProperty "propDecEncBlockIds" propDecEncBlockIds,
         testProperty "propDecEncBlockData" propDecEncBlockData
-        testProperty "propDecEncBlockIds" propDecEncBlockIds
-        -- testProperty "propPutBlockRegion" propPutBlockRegion
       ]
-  ]
+ 
 
 {- Properties -}
+
 -- I want a function that would tell me what part of the region is not the same.
 -- One of the elements must necessarily be different.
--- TODO
--- How many times is this property checked? I would like it checked 100
+-- 
+-- TODO How many times is this property checked? I would like it checked 100
 -- times.
+--
+-- Clearly an arbitrary bytestring should do. The array can be 
 propDecEncRegion :: Region -> Bool
 propDecEncRegion r@(Region reg) =
-  let rt@(Region roundTrip) = (decode . encode) r
+  let rt@(Region roundTrip) = (decode.encode) r
       differingEntries = filter (\(a,b) -> snd a /= snd b) $ zip (assocs reg) (assocs roundTrip)
   in if rt /= r then error $ "The first 10 pairs of differing entries':" ++ show (take 10 differingEntries)
                     else True
 
-propDecEncBlockData bs = undefined
-propDecEncBlockIds bs = undefined
+propToFromNybbles ::  Byte -> Bool
+propToFromNybbles byte = (fromNybbles.toNybbles) byte == byte
+
+propDecEncBlockIds ::  BlockIds -> Bool
+propDecEncBlockIds bd@(BlockIds bdArr) =
+  let rt@(BlockIds roundTrip) = (decode.encode) bd
+      differingEntries = filter (\(a,b) -> snd a /= snd b) $ zip (assocs bdArr) (assocs roundTrip)
+  in if rt /= bd
+      then error $ "The first 10 pairs of differing entries':"
+                   ++ show (take 10 differingEntries)
+      else True
+
+propDecEncBlockData :: BlockData -> Bool
+propDecEncBlockData bd@(BlockData bdArr) =
+  let rt@(BlockData roundTrip) = (decode.encode) bd
+      differingEntries = filter (\(a,b) -> snd a /= snd b) $ zip (assocs bdArr) (assocs roundTrip)
+  in if rt /= bd then error $ "The first 10 pairs of differing entries':" ++ show (take 10 differingEntries)
+                    else True
+
 
 -- Putting a block in a region will change it.
 -- Not just any arbitrary CellCoords will do here it must be Bounded.
@@ -70,7 +102,7 @@ main = defaultMain testSuite
 -- This can be done by using the Arbitrary Monad instance.
 instance Arbitrary Region where
   arbitrary = do
-    chunks <- sequence [arbitrary | _ <- [1..numChunksInRegion]]
+    chunks <- vector numChunksInRegion
 --    chunks <- sequence $ arbitrary:[return Nothing | _ <- [4..numChunksInRegion]] ++ [arbitrary,arbitrary]
     return . Region $ listArray ((0,0),(numChunksInRow-1,numChunksInCol-1)) chunks
 
@@ -81,6 +113,25 @@ instance Arbitrary CompressedChunk where
 instance Arbitrary CompressionFormat where
   arbitrary = elements [GZip,Zlib]
 
+-- Create a random list of Word8.
+instance Arbitrary BlockIds where
+  arbitrary = do
+    cells <- vector numCellsInChunk :: Gen [Word8]
+    return . BlockIds $ listArray (arrMin,arrMax) cells
+    where
+      arrMin = (0,0,0)
+      arrMax = (chunkSizeX-1, chunkSizeZ-1, chunkSizeY-1)
+
+-- Create a random list of Word8...
+instance Arbitrary BlockData where
+  arbitrary = do
+    cells <- vector numCellsInChunk :: Gen [Word8]
+    let cells' = map (flip mod (2^4)) cells
+    return . BlockData $ listArray (arrMin,arrMax) cells'
+    where
+      arrMin = (0,0,0)
+      arrMax = (chunkSizeX-1, chunkSizeZ-1, chunkSizeY-1)
+    
 instance Arbitrary L.ByteString where
   arbitrary     = elements [L.cons 100 $ L.cons 200 L.empty, L.cons 100 L.empty]
 -- instance Arbitrary L.ByteString where

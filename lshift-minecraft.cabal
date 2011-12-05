@@ -54,7 +54,7 @@ Test-Suite test-lshift-minecraft
                      utility-ht, data-ordlist,
                      list-extras, binary-strict,
                      test-framework, test-framework-quickcheck2,
-                     QuickCheck
+                     QuickCheck, filepath
 
 Executable get-player-coords
   -- .hs or .lhs file containing the Main module.
@@ -67,7 +67,7 @@ Executable get-player-coords
                      pretty-show,
                      derive>=2.5.4, colour, array,
                      utility-ht, gd, data-ordlist, binary-strict,
-                     syz, syb
+                     syz, syb, filepath
 
 Executable roundtrip
   -- .hs or .lhs file containing the Main module.
@@ -80,7 +80,7 @@ Executable roundtrip
                      pretty-show,
                      derive>=2.5.4, colour, array,
                      utility-ht, gd, data-ordlist, binary-strict,
-                     syz, syb
+                     syz, syb, filepath
 
 Executable oneblock
   -- .hs or .lhs file containing the Main module.
@@ -93,7 +93,7 @@ Executable oneblock
                      pretty-show,
                      derive>=2.5.4, colour, array,
                      utility-ht, data-ordlist, binary-strict,
-                     syz, syb
+                     syz, syb, filepath
 
   -- Modules not exported by this package.
   -- Other-modules:       

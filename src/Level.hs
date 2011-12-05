@@ -80,7 +80,7 @@ instance Binary Level where
 -- implementation to extract the player's position correctly.
 
 -- This is the old version of getting the player coords. 
-getPlayerCoords' :: NBT -> CellCoords
+getPlayerCoords' :: NBT -> PlayerCoords
 getPlayerCoords' (CompoundTag (Just "" ) tags) =
   let [(CompoundTag (Just "Data") dtags)] = tags in
   case findPlayerTag dtags of
@@ -88,7 +88,7 @@ getPlayerCoords' (CompoundTag (Just "" ) tags) =
     Just ptag -> let ptagContents = compoundContents ptag in
       let [x,y,z] = map getInt $ filter (isPrefixOf "Spawn" . fromJust . getName)
                       $ filter (isJust . getName) ptagContents
-      in (x,y,z)
+      in PlayerCoords (x,y,z)
   where
     findPlayerTag = find isPlayerTag
     isPlayerTag (CompoundTag (Just "Player") _) = True
@@ -96,12 +96,12 @@ getPlayerCoords' (CompoundTag (Just "" ) tags) =
 getPlayerCoords' _ = error "Invalid level.dat NBT: does not begin with Data CompoundTag"
 
 -- Total function that extracts the player's position out of a level.dat NBT.
-getPlayerCoords :: NBT -> Maybe CellCoords
+getPlayerCoords :: NBT -> Maybe PlayerCoords
 getPlayerCoords nbt = do
   posList <- getData =<< moveToTag "Pos" (toZipper nbt) :: Maybe [NBT]
   let [x,y,z] = catMaybes $ map (getData.toZipper) posList :: [Double]
   let [x',y',z'] = map truncate [x,y,z]
-  return (x',z',y')
+  Just $ PlayerCoords (x',z',y')
   where
     getList (ListTag _ _ _ list) = list
 

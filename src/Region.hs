@@ -44,11 +44,6 @@ import Utils
 
 -- Kilobytes to Bytes, and we define a 'sector' to be 4KiB
 kB = 1024
--- There are 32x32 chunks in a region.
-numChunksInRow = 32
-numChunksInCol = 32
-numChunksInRegion = numChunksInRow * numChunksInCol 
-
 sector = 4*kB
 
 -- The header is 8kB in size
@@ -108,12 +103,11 @@ instance Binary CompressionFormat where
   
 {- REGION EDIT FUNCTIONS -}
 
-
--- Find the original compressed chunk
+-- Given a region-local chunk coordinate, we update that chunk in our region.
 modifyRegion :: ChunkCoords -> (CompressedChunk -> CompressedChunk) -> Region -> Region
 modifyRegion coords f (Region arr) =
-  let mRegion = arr ! coords in
-  Region $ arr // [(coords, f <$> mRegion)]
+  let mCompressedChunk = arr ! coords :: Maybe CompressedChunk in
+  Region $ arr // [(coords, f <$> mCompressedChunk)]
 
 {- SERIALIZATION FUNCTIONS -}
 
