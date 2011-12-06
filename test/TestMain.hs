@@ -49,7 +49,12 @@ testUnit :: Test
 testUnit = testGroup "Unit tests" [
 --        testCase "testUpdateChangesBlock" testUpdateChangesBlock,
         testGroup "moveToTag" $
-          concatMap hUnitTestToTests [testMoveToBlock, testMoveToData, testUpdateChangesBlock]
+          concatMap hUnitTestToTests [
+            testMoveToBlockId,
+            testMoveToBlockData,
+            testUpdateChangesBlockIds,
+            testUpdateChangesBlockData
+          ]
         ]
   
 
@@ -67,16 +72,22 @@ testUnit = testGroup "Unit tests" [
 -- A simple NBT representing a 16x128x16 block of pure gold.
 nbt2 :: NBT 
 nbt2 = CompoundTag (Just "Level") [
-  blocksPureGold,
+  chunkOfPureGold,
   dataPureZero
   ]
 
--- Interesting; even though I've set all the blocks to pure gold, 9 appears.
-blocksPureGold =
-  let gold = 41 :: Word8
-      size = fromIntegral numCellsInChunk
-      bs = L.pack (replicate numCellsInChunk gold) in
+chunkOfPure :: Word8 -> NBT
+chunkOfPure bid = 
+  let size = fromIntegral numCellsInChunk
+      bs = L.pack (replicate numCellsInChunk bid) in
   ByteArrayTag (Just "Blocks") size bs
+
+-- Interesting; even though I've set all the blocks to pure gold, 9 appears.
+chunkOfPureGold :: NBT
+chunkOfPureGold = let gold = 41 in chunkOfPure gold
+
+chunkOfPureWhiteWool :: NBT
+chunkOfPureWhiteWool = let wool = 35 in chunkOfPure wool
 
 -- This represents white wool, or the default data value for any block.
 -- Create from numCellsInChunk nybbles of 0.
@@ -86,36 +97,55 @@ dataPureZero = let zeros = L.pack $ replicate size 0
                    size' = fromIntegral size :: Int32 in
   ByteArrayTag (Just "Data") size' zeros
 
-testMoveToBlock = "Move to Blocks tag" ~:
-  getHole (fromJust $ moveToTag "Blocks" (toZipper nbt2)) ~?= Just blocksPureGold
-testMoveToData  = "Move to Data tag" ~:
+testMoveToBlockId = "Move to Blocks tag" ~:
+  getHole (fromJust $ moveToTag "Blocks" (toZipper nbt2)) ~?= Just chunkOfPureGold
+testMoveToBlockData  = "Move to Data tag" ~:
   getHole (fromJust $ moveToTag "Data" (toZipper nbt2)) ~?= Just dataPureZero
  
 {- Test cases -}
 
+
 -- Put a white wool block in the gold block.
--- It looks like the entire business of reading BlockData seems wrong.
--- It's yielding totally the wrong values!
-testUpdateChangesBlock :: H.Test
-testUpdateChangesBlock = (expectedBd == actualBd) ~? diffMsg
+-- This only requires manipulation of the block data array.
+testUpdateChangesBlockIds :: H.Test
+testUpdateChangesBlockIds = "Put wool block in gold chunk" ~:
+  (expectedBids == actualBids) ~? diffMsg
   where
-    expectedBd@(BlockData expectedArr) = BlockData $ d // [(locC,wool)]
-    actualBd@(BlockData actualArr) = decode $ getBlocks nbt2' :: BlockData
-    nbt2' = updateBlocks nbt2
+    -- Get the blocks array of nbt2; expect the same array with one value
+    -- changed at locC
+    (BlockIds ids) = decode $ getBlockIds nbt2 :: BlockIds
+    expectedBids@(BlockIds expectedArr) = BlockIds $ ids // [(locC,wool)]
+    actualBids@(BlockIds actualArr) = decode $ getBlockIds nbt2' :: BlockIds
+    nbt2' = updateChunk [updateBlocks] nbt2
     updateBlocks = setBlockId locC wool
-    (BlockData d) = decode $ getBlocks nbt2 :: BlockData
-    diffMsg = show (diff 20 expectedArr actualArr) ++ "\n"
-                     ++ show (atMin expectedArr actualArr)
+    diffMsg = "The actual block data differs from expected. Here are some differences.\n"
+              ++ show (diff 20 expectedArr actualArr) ++ "\n"
+              ++ show (atMin expectedArr actualArr) ++ "\n"
     locC = (1,1,1)
     wool = 35
 
-getBlocks :: NBT -> L.ByteString
-getBlocks n = fromJust $ do
+testUpdateChangesBlockData :: H.Test
+testUpdateChangesBlockData = "Put different coloured wool block in wool chunk!" ~:
+  (expectedBd == actualBd) ~? diffMsg
+  where
+    (BlockData d) = decode $ getBlockData nbt2 :: BlockData
+    updateData = setBlockDatum locC colour
+    nbt2' = updateChunk [updateData] nbt2
+    expectedBd@(BlockData expectedArr) = BlockData $ d // [(locC,colour)]
+    actualBd@(BlockData actualArr) = decode $ getBlockData nbt2' :: BlockData
+    diffMsg = "The actual block data differs from expected. Here are some differences.\n"
+              ++ show (diff 20 expectedArr actualArr) ++ "\n"
+              ++ show (atMin expectedArr actualArr) ++ "\n"
+    locC = (1,1,1)
+    colour = 1
+
+getBlockIds :: NBT -> L.ByteString
+getBlockIds n = fromJust $ do
   z3 <- moveToTag "Blocks" (toZipper n)
   z4 <- down z3 :: Maybe (Zipper NBT)
   getHole z4 :: Maybe L.ByteString
 
-getData n = fromJust $ do
+getBlockData n = fromJust $ do
   z3 <- moveToTag "Data" (toZipper n)
   z4 <- down z3 :: Maybe (Zipper NBT)
   getHole z4 :: Maybe L.ByteString

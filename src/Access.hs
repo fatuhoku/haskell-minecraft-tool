@@ -52,12 +52,12 @@ updateChunk fs = everywhere $ mkT $ foldr1 (.) fs
 -- These are kind of expensive :/
 setBlockIds :: B.ByteString -> NBT -> NBT
 setBlockIds bs (ByteArrayTag (Just "Blocks") len _) =
-  ByteArrayTag (Just "Blocks") 0 bs
+  ByteArrayTag (Just "Blocks") (fromIntegral $ B.length bs) bs
 setBlockIds _ x = x
 
 setBlockData :: B.ByteString -> NBT -> NBT
 setBlockData bs (ByteArrayTag (Just "Data") len _) =
-  ByteArrayTag (Just "Data") 0 bs
+  ByteArrayTag (Just "Data") (fromIntegral $ B.length bs) bs
 setBlockData _ x = x
 
 -- We return a modified Blocks array with the 
