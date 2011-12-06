@@ -49,33 +49,35 @@ updateChunk fs = everywhere $ mkT $ foldr1 (.) fs
 -------------------------------------------------
 
 -- Transition function that applies to an NBT I'm interested in.
--- Let's try and set the 
--- Now, given a particular
-setBlocksToEmpty :: NBT -> NBT
-setBlocksToEmpty (ByteArrayTag (Just "Blocks") len _) =
-  ByteArrayTag (Just "Blocks") 0 B.empty
-setBlocksToEmpty x = x
+-- These are kind of expensive :/
+setBlockIds :: B.ByteString -> NBT -> NBT
+setBlockIds bs (ByteArrayTag (Just "Blocks") len _) =
+  ByteArrayTag (Just "Blocks") 0 bs
+setBlockIds _ x = x
 
-setDataToEmpty :: NBT -> NBT
-setDataToEmpty (ByteArrayTag (Just "Data") len _)  = ByteArrayTag (Just "Data") 0 B.empty
-setDataToEmpty x = x
+setBlockData :: B.ByteString -> NBT -> NBT
+setBlockData bs (ByteArrayTag (Just "Data") len _) =
+  ByteArrayTag (Just "Data") 0 bs
+setBlockData _ x = x
 
--- This operates on the Blocks array only
-setBlockId :: CellCoords -> BlockId ->  NBT -> NBT
+-- We return a modified Blocks array with the 
+setBlockId :: LocalCoords -> BlockId ->  NBT -> NBT
 setBlockId coord bid (ByteArrayTag (Just "Blocks") _ bs) = 
   let bids = decode bs :: BlockIds in
   let bids' = encode $ setBlockId' bids in
-  ByteArrayTag (Just "Blocks") (fromIntegral $ B.length bids') bids'
+  -- We know exactly the number of bytes are there are in this byte-array:
+  -- numCellsInChunk!
+  ByteArrayTag (Just "Blocks") (fromIntegral numCellsInChunk) bids'
   where
     setBlockId' (BlockIds arr) = BlockIds $ arr // [(coord,bid)]
 setBlockId _ _ nbt = nbt
 
 -- TODO Perform fusion on difference array differences.
-setBlockDatum :: CellCoords -> BlockDatum ->  NBT -> NBT
+setBlockDatum :: LocalCoords -> BlockDatum ->  NBT -> NBT
 setBlockDatum coord bid (ByteArrayTag (Just "Data") _ bs) = 
   let bids = decode bs :: BlockData in
   let bids' = encode $ setBlockDatum' bids in
-  ByteArrayTag (Just "Data") (fromIntegral $ B.length bids') bids'
+  ByteArrayTag (Just "Data") (fromIntegral numCellsInChunk `div` 2) bids'
   where
     setBlockDatum' (BlockData arr) = BlockData $ arr // [(coord,bid)]
 setBlockDatum _ _ nbt = nbt

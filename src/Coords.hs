@@ -38,6 +38,10 @@ type RegionCoords = (X, Z)     -- Global region coordinates
 type ChunkCoords = (X, Z)      -- Region-local chunk coordinates (mod)
 type LocalCoords = CellCoords  -- Chunk-local cell coordinates (mod)
 
+-- TODO Incoorporate this fact into tests:
+-- Chunk at (30, -3) would be in region (0, -1),
+-- and one at (70, -30) would be at (2, -1).
+
 {- Translation between coordinate systems... -}
 
 -- Safe conversion between player coordinates (in level.dat) and global cell

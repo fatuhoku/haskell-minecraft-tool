@@ -26,7 +26,11 @@ data BlockIds = BlockIds (Array CellCoords BlockId)
   deriving (Eq, Show)
 
 data BlockData = BlockData (Array CellCoords BlockDatum)
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show BlockData where
+  show (BlockData bd) = "BlockData: ["++show (bounds bd)++"]"
+
 
 indices = [(x,z,y) | x <- [0..chunkSizeX-1],
                      z <- [0..chunkSizeZ-1],

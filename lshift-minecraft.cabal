@@ -54,7 +54,8 @@ Test-Suite test-lshift-minecraft
                      utility-ht, data-ordlist,
                      list-extras, binary-strict,
                      test-framework, test-framework-quickcheck2,
-                     QuickCheck, filepath
+                     QuickCheck, filepath, test-framework-hunit,
+                     HUnit, syb, syz
 
 Executable get-player-coords
   -- .hs or .lhs file containing the Main module.
