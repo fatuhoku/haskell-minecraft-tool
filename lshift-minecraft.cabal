@@ -67,7 +67,7 @@ Executable get-player-coords
                      bytestring, zlib, directory,
                      pretty-show,
                      derive>=2.5.4, colour, array,
-                     utility-ht, gd, data-ordlist, binary-strict,
+                     utility-ht, data-ordlist, binary-strict,
                      syz, syb, filepath
 
 Executable roundtrip
@@ -80,7 +80,7 @@ Executable roundtrip
                      bytestring, zlib, directory,
                      pretty-show,
                      derive>=2.5.4, colour, array,
-                     utility-ht, gd, data-ordlist, binary-strict,
+                     utility-ht, data-ordlist, binary-strict,
                      syz, syb, filepath
 
 Executable oneblock

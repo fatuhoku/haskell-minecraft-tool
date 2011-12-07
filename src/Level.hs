@@ -101,7 +101,7 @@ getPlayerCoords nbt = do
   posList <- getData =<< moveToTag "Pos" (toZipper nbt) :: Maybe [NBT]
   let [x,y,z] = catMaybes $ map (getData.toZipper) posList :: [Double]
   let [x',y',z'] = map truncate [x,y,z]
-  Just $ PlayerCoords (x',z',y')
+  Just $ PlayerCoords (x',y',z')
   where
     getList (ListTag _ _ _ list) = list
 

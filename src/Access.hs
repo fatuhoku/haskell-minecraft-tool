@@ -19,14 +19,7 @@ import Coords
 import Chunk
 import Types
 
-nbt1 = CompoundTag (Just "Level") [
-  DoubleTag (Just "Zero") 0.0,
-  ByteArrayTag (Just "Blocks") 2 (2 `B.cons` (1 `B.cons` B.empty)),
-  IntTag (Just "One") 1,
-  ByteArrayTag (Just "Data") 1 (1 `B.cons` B.empty)
-  ]
-
-value = undefined
+-- value = undefined
 -- let g1 = toZipper nbt1 in
 -- let Just g2 = down g1 in getHole g2 
 --        let Just g3 = getHole g2 :: Maybe [NBT]

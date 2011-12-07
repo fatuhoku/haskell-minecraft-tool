@@ -53,11 +53,12 @@ testWorld = "worlds/testworld"
 
 main = do
   args <- getArgs
-  let path = case args of
+  putStrLn $ "Got past getArgs"
+  let dir = case args of
               [] -> testWorld
               (x:_) -> x
 
-  (Level nbt) <- decodeFile path :: IO Level
+  (Level nbt) <- decodeFile $ getLevelPath dir :: IO Level
   let coord = getPlayerCoords nbt
   putStrLn $ "---------------------------------"
   putStrLn $ "- Pretty printing NBT structure -" 
