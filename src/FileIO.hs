@@ -3,6 +3,17 @@
 {-# LANGUAGE TypeFamilies #-}
 module FileIO where
 
+{----------}
+{- FileIO -}
+{----------}
+-- This module contains all side-effectual functionality required to modify a
+-- Minecraft world. A typeclass called FileBacked is used to abstract over types
+-- of files found in the Minecraft world.
+--
+-- Two kinds of things in a Minecraft world are FileBacked:
+--  - level.dat (Level) and
+--  - r.X.Z.mcr (Region) files.
+--
 import qualified Data.ByteString.Lazy as B
 import Codec.Compression.GZip as GZip
 import Codec.Compression.Zlib as Zlib
@@ -20,21 +31,18 @@ import Types
 import World
 import System.FilePath.Posix
 
-{- FileIO
- - This module contains all side-effectual functionality required to modify a
- - Minecraft world. Two kinds of things are FileBacked
- -  - level.dat (Level) and
- -  - r.X.Z.mcr (Region) files.
- - This file connects the pure encode and decoding functions given in each
- - module with the file system. -}
-
--- We need a function that, given some FilePathProvider, which switches on the
--- FileBacked type...
---  - () for Level
---  - (X,Z) for Region
--- The getPath function combines the FilePath provider 
---
--- FileBacked types are required to also be binary.
+-- FileBacked represents a common type of file in the Minecraft world.
+-- These files are expected to live under the Minecraft WorldDirectory.
+-- Their file locations under this directory can vary by type; the getPath method
+-- provides a means for users to calculate such a path rooted at the Minecraft
+-- WorldDirectory. Notice PathParam: this associated type allows the user to pass
+-- more specific data required to compute the exact path or filename of the file.
+-- Edit is a specific implementation of how the file should be edited, given an
+-- exact path and an update function.
+-- Binary instances are expected. Typical usage for FileBacked data fb are:
+--   encodeFile fb
+--   decodeFile fb
+-- TODO fix the signiture of edit to remove FilePath.
 class (Binary a) => FileBacked a where
   data PathParam a
   getPath :: WorldDirectory -> PathParam a -> FilePath

@@ -69,6 +69,15 @@ testUnit = testGroup "Unit tests" [
 --   BlockLight, or SkyLight arrays correspond to the first byte of the Blocks
 --   array."
 
+{- Test NBT data -}
+nbt1 = CompoundTag (Just "Level") [
+  DoubleTag (Just "Zero") 0.0,
+  ByteArrayTag (Just "Blocks") 2 (2 `B.cons` (1 `B.cons` B.empty)),
+  IntTag (Just "One") 1,
+  ByteArrayTag (Just "Data") 1 (1 `B.cons` B.empty)
+  ]
+
+
 -- A simple NBT representing a 16x128x16 block of pure gold.
 nbt2 :: NBT 
 nbt2 = CompoundTag (Just "Level") [

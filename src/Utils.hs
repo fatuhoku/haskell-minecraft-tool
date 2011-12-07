@@ -1,5 +1,10 @@
 module Utils where
 
+{---------}
+{- Utils -}
+{---------}
+-- Common utility functions to keep me sane.
+
 import Data.Bits
 import Data.Monoid
 import Debug.Trace

@@ -1,6 +1,10 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 module Chunk where
 
+{---------}
+{- Chunk -}
+{---------}
+
 import qualified Codec.Compression.GZip as GZip
 import qualified Codec.Compression.Zlib as Zlib
 
@@ -21,10 +25,12 @@ import Types
 import Utils
 
 {- CHUNK SERIALIZATION -}
+
 -- Fully represents the "Blocks" TAG_Byte_Array tag of the ChunkNBT.
 data BlockIds = BlockIds (Array CellCoords BlockId)
   deriving (Eq, Show)
 
+-- Fully represents the "Data" TAG_Byte_Array tag of the ChunkNBT.
 data BlockData = BlockData (Array CellCoords BlockDatum)
   deriving (Eq)
 

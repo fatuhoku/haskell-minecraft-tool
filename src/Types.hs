@@ -1,13 +1,13 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Types where
 
+{---------}
+{- Types -}
+{---------}
+-- A module that contains type definitions.
+
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.UTF8 as UTF8 ( fromString, toString )
--- import Data.Data
--- import Data.Derive.Data
--- import Data.Derive.Typeable
--- import Data.DeriveTH
--- import Data.Typeable
 import Data.Array
 import Data.Binary -- ( Binary (..), decode, encode )
 import Data.Binary.Get

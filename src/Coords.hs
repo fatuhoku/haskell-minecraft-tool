@@ -1,8 +1,11 @@
 module Coords where
 
-{- This module contains constant dimensions that Minecraft uses, type
- - definitions for the coordinate systems used, and code that translates between
- - these coordinate systems. -}
+{---------}
+{- Chunk -}
+{---------}
+-- This module contains constant dimensions that Minecraft uses, type
+-- definitions for the coordinate systems used, and code that translates between
+-- these coordinate systems.
 
 type X = Int -- X coordinate type
 type Y = Int -- Z coordinate type
@@ -30,7 +33,6 @@ numCellsInChunk = chunkSizeX * chunkSizeY * chunkSizeZ
 -- coordinates, and to work locally within a chunk, we need chunk-local cell
 -- coordinates.
 -- TODO Make it clear what coordinates we are talking about.
--- Notice that Chunk coordinates should not 
 newtype PlayerCoords = PlayerCoords (X, Y, Z)  -- Global player coordinates
   deriving (Eq, Show)
 type CellCoords = (X, Z, Y)    -- Global cell coordinates

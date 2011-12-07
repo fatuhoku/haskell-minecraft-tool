@@ -4,6 +4,9 @@ import Data.Array
 import Data.Binary
 import Types
 
+{---------}
+{- Block -}
+{---------}
 {- This module contains block data and block ids
  - Most blocks in the Minecraft world can fully (??) be identified and defined
  - by one blockId (Word8) and one blockData(Word4).

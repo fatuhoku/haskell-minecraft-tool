@@ -1,5 +1,13 @@
 module Level where
 
+{---------}
+{- Level -}
+{---------}
+-- Represents the level.dat file in a Minecraft world. Currently this is
+-- abstracted as a newtype for NBT, such that serializing it can be handled
+-- differently than to NBT (ensure decompression and compression is done in get
+-- and put)
+
 import Codec.Compression.GZip as GZip
 import Codec.Compression.Zlib as Zlib
 import Control.Applicative
@@ -74,12 +82,10 @@ instance Binary Level where
 -- }-- Whether the map should be locked in hardcore mode. This can be set to 0 or 1 to toggle the state of a map, even after it is created.
 -----------------------------------------------------------------------
 
-
-
 -- TODO Differentiate between level.dat NBT versions and pick the apporpriate
 -- implementation to extract the player's position correctly.
 
--- This is the old version of getting the player coords. 
+-- OLD VERSION of getting the player coords. 
 getPlayerCoords' :: NBT -> PlayerCoords
 getPlayerCoords' (CompoundTag (Just "" ) tags) =
   let [(CompoundTag (Just "Data") dtags)] = tags in
@@ -95,8 +101,12 @@ getPlayerCoords' (CompoundTag (Just "" ) tags) =
     isPlayerTag _ = False
 getPlayerCoords' _ = error "Invalid level.dat NBT: does not begin with Data CompoundTag"
 
+-- NEW VERSION, used since Patch 1.9.
 -- Total function that extracts the player's position out of a level.dat NBT.
+-- TODO Add check for the TAG_Compound "Data". In the older version,
+-- TAG_Compound "" was used.
 getPlayerCoords :: NBT -> Maybe PlayerCoords
+--getPlayerCoords nbt@(CompoundTag (Just "Data") nbts) = do
 getPlayerCoords nbt = do
   posList <- getData =<< moveToTag "Pos" (toZipper nbt) :: Maybe [NBT]
   let [x,y,z] = catMaybes $ map (getData.toZipper) posList :: [Double]
@@ -105,17 +115,17 @@ getPlayerCoords nbt = do
   where
     getList (ListTag _ _ _ list) = list
 
-    -- The rightmost (down) element of a zipper is the relevant data:
-    -- ByteTag -> Int8
-    -- ShortTag -> Int16
-    -- IntTag (Maybe String) Int32	 
-    -- LongTag -> Int64	 
-    -- FloatTag -> Float	 
-    -- DoubleTag -> Double	 
-    -- ByteArrayTag -> ByteString	 
-    -- StringTag -> String	 
-    -- ListTag -> [NBT]	 
-    -- CompoundTag -> [NBT]
+    -- Get the rightmost (down) element of a zipper is the relevant data:
+    --   ByteTag -> Int8
+    --   ShortTag -> Int16
+    --   IntTag (Maybe String) Int32	 
+    --   LongTag -> Int64	 
+    --   FloatTag -> Float	 
+    --   DoubleTag -> Double	 
+    --   ByteArrayTag -> ByteString	 
+    --   StringTag -> String	 
+    --   ListTag -> [NBT]	 
+    --   CompoundTag -> [NBT]
     getData nbt = down nbt >>= getHole
 -- getPlayerCoords _ = error "Invalid level.dat NBT: does not begin with Data CompoundTag"
 

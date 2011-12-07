@@ -1,5 +1,15 @@
 module Main where
 
+{----------------}
+{- OneWoolBlock -}
+{----------------}
+-- This code puts a white wool block 5 squares above the players'
+-- head. The directory of the world is taken from the arguments.
+-- This executable showcases two functionalities:
+-- - identify the exact cell coordinates in which the player stands
+-- - converting this coordinate to region, chunk coordinates, and updating a
+--   cell in those particular region, chunks.
+
 import Control.Monad
 import Data.Binary
 import Data.Maybe

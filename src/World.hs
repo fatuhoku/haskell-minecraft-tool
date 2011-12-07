@@ -6,8 +6,19 @@ import Level
 import Region
 import Types
 
-{- Reading and Writing The abstraction for a Minecraft world is simply a directory at the moment.
- - TODO Make world a lazy Array of Regions. We make modifications onto a world. -}
+{---------}
+{- World -}
+{---------}
+-- This module provides facilities to read and write into a Minecraft world.
+-- The abstraction for a Minecraft world is simply a directory at the moment.
+--
+-- TODO Alter the abstraction for world: make it a lazy Array of Regions.
+-- Changes to the world should be grouped by region, and those changes should be
+-- made to the region in one swift batch.
+--
+-- TODO Make a function // setBlocks :: [(CellCoord,Block)] -> World -> World //
+-- that would nice and simply update a bunch of blocks in the world, even if
+-- they cross chunk boundaries.
 type WorldDirectory = FilePath
 data World = World Level (Array RegionCoords Region)
 
