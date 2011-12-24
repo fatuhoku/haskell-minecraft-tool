@@ -47,7 +47,7 @@ Test-Suite test-lshift-minecraft
      Hs-Source-Dirs: src,test
 --     Test-Module:    Test.LShiftMinecraft
      Main-is:        TestMain.hs
-     Build-Depends:  base, nbt, utf8-string, binary,
+     Build-Depends:  base, nbt==0.2, utf8-string, binary,
                      bytestring, zlib, directory,
                      pretty-show, lazysmallcheck, OddWord,
                      derive>=2.5.4, colour, array,
@@ -63,7 +63,7 @@ Executable get-player-coords
      Hs-Source-Dirs: src
   
   -- Packages needed in order to build this package.
-     Build-depends:  base, nbt, utf8-string, binary,
+     Build-depends:  base, nbt==0.2, utf8-string, binary,
                      bytestring, zlib, directory,
                      pretty-show,
                      derive>=2.5.4, colour, array,
@@ -71,12 +71,9 @@ Executable get-player-coords
                      syz, syb, filepath
 
 Executable roundtrip
-  -- .hs or .lhs file containing the Main module.
      Main-is:        RegionRoundTrip.hs
      Hs-Source-Dirs: src
-  
-  -- Packages needed in order to build this package.
-     Build-depends:  base, nbt, utf8-string, binary,
+     Build-depends:  base, nbt==0.2, utf8-string, binary,
                      bytestring, zlib, directory,
                      pretty-show,
                      derive>=2.5.4, colour, array,
@@ -84,17 +81,26 @@ Executable roundtrip
                      syz, syb, filepath
 
 Executable oneblock
-  -- .hs or .lhs file containing the Main module.
      Main-is:        OneWoolBlock.hs
      Hs-Source-Dirs: src
-  
-  -- Packages needed in order to build this package.
-     Build-depends:  base, nbt, utf8-string, binary,
+     Build-depends:  base, nbt==0.2, utf8-string, binary,
                      bytestring, zlib, directory,
                      pretty-show,
                      derive>=2.5.4, colour, array,
                      utility-ht, data-ordlist, binary-strict,
-                     syz, syb, filepath
+                     syz, syb, filepath, split, Codec-Image-DevIL
+
+Executable minecraft-png-import
+     Main-is:        MinecraftPngImport.hs
+     Hs-Source-Dirs: src
+     Build-depends:  base, nbt==0.2, utf8-string, binary,
+                     bytestring, zlib, directory,
+                     pretty-show,
+                     derive>=2.5.4, colour, array,
+                     utility-ht, data-ordlist, binary-strict,
+                     syz, syb, filepath, split, Codec-Image-DevIL,
+                     list-extras
+
 
   -- Modules not exported by this package.
   -- Other-modules:       

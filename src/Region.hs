@@ -68,9 +68,6 @@ data RegionFileHeader = RegionFileHeader {
   rfHdrTimestamps :: [Timestamp] -- synonym for Word32
   }
 
--- I suspect what's happening is that the x and z components are being swapped
--- around, so maybe if I do an adventureous 'transpose' then I'll get the right
--- thing.
 instance Binary RegionFileHeader where
   put (RegionFileHeader locs scs tss) =
     -- (loc::Word24,sectorCount::Word8) require some bit-shifting work.

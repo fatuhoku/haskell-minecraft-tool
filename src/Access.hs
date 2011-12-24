@@ -53,27 +53,24 @@ setBlockData bs (ByteArrayTag (Just "Data") len _) =
   ByteArrayTag (Just "Data") (fromIntegral $ B.length bs) bs
 setBlockData _ x = x
 
--- We return a modified Blocks array with the 
-setBlockId :: LocalCoords -> BlockId ->  NBT -> NBT
-setBlockId coord bid (ByteArrayTag (Just "Blocks") _ bs) = 
-  let bids = decode bs :: BlockIds in
-  let bids' = encode $ setBlockId' bids in
-  -- We know exactly the number of bytes are there are in this byte-array:
-  -- numCellsInChunk!
-  ByteArrayTag (Just "Blocks") (fromIntegral numCellsInChunk) bids'
+-- BuildBlock 
+blockIdUpdates :: [(LocalCoords, BlockId)] ->  NBT -> NBT
+blockIdUpdates updates (ByteArrayTag (Just "Blocks") _ bs) = 
+  ByteArrayTag (Just "Blocks") (fromIntegral numCellsInChunk) bs'
   where
-    setBlockId' (BlockIds arr) = BlockIds $ arr // [(coord,bid)]
-setBlockId _ _ nbt = nbt
+    bids = decode bs :: BlockIds
+    f (BlockIds arr) = BlockIds $ arr // updates
+    bs' = encode (f bids)
+blockIdUpdates _ nbt = nbt
 
--- TODO Perform fusion on difference array differences.
-setBlockDatum :: LocalCoords -> BlockDatum ->  NBT -> NBT
-setBlockDatum coord bid (ByteArrayTag (Just "Data") _ bs) = 
-  let bids = decode bs :: BlockData in
-  let bids' = encode $ setBlockDatum' bids in
-  ByteArrayTag (Just "Data") (fromIntegral numCellsInChunk `div` 2) bids'
+blockDataUpdates :: [(LocalCoords, BlockDatum)] ->  NBT -> NBT
+blockDataUpdates updates (ByteArrayTag (Just "Data") _ bs) = 
+  ByteArrayTag (Just "Data") (fromIntegral numCellsInChunk `div` 2) bs'
   where
-    setBlockDatum' (BlockData arr) = BlockData $ arr // [(coord,bid)]
-setBlockDatum _ _ nbt = nbt
+    bids = decode bs :: BlockData
+    bs' = encode $ f bids
+    f (BlockData arr) = BlockData $ arr // updates
+blockDataUpdates _ nbt = nbt
 
 -------------------------------------------------
 -- END FUNCTIONS

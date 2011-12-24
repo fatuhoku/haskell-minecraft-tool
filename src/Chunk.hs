@@ -75,11 +75,10 @@ instance Binary BlockData where
 
 {- CHUNK EDIT FUNCTIONS -}
 -- Does not update timestamps! Uses the same compression method!
--- Lifts a NBT homomorphism into CompressedChunk homomorphism
--- TODO abstract: For any Binary value, we can derive ByteString -> ByteString 
--- homomorphism.
-modifyCc :: (NBT -> NBT) -> CompressedChunk -> CompressedChunk
-modifyCc f cc@(CompressedChunk chunkData format ts) =
+-- Lifts a function on NBTs to a function on CompressedChunks
+-- by wrapping the appropriate compression and decompression around the sides.
+liftCc :: (NBT -> NBT) -> CompressedChunk -> CompressedChunk
+liftCc f cc@(CompressedChunk chunkData format ts) =
   mapCc (compressWith format.encode.f.decode.decompressWith format) cc
   where 
     -- A bit like a functor instance. Lifts NBTs to the level of CompressedChunks

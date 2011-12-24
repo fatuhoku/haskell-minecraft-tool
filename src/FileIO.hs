@@ -49,8 +49,8 @@ class (Binary a) => FileBacked a where
   
   -- Edit copies the original file to a backup file. The backup file is read,
   -- and the new modified version of the file is created.
-  edit :: FilePath -> (a -> a) -> IO ()
-  edit file f = do
+  editFile :: FilePath -> (a -> a) -> IO ()
+  editFile file f = do
     let backup = file ++ ".bak"
     renameFile file backup
     x <- decodeFile backup

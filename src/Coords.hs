@@ -39,6 +39,7 @@ type CellCoords = (X, Z, Y)    -- Global cell coordinates
 type RegionCoords = (X, Z)     -- Global region coordinates
 type ChunkCoords = (X, Z)      -- Region-local chunk coordinates (mod)
 type LocalCoords = CellCoords  -- Chunk-local cell coordinates (mod)
+type HierarchicalCoords = (RegionCoords, ChunkCoords, LocalCoords)
 
 -- TODO Incoorporate this fact into tests:
 -- Chunk at (30, -3) would be in region (0, -1),
@@ -51,12 +52,17 @@ type LocalCoords = CellCoords  -- Chunk-local cell coordinates (mod)
 playerToCellCoords :: PlayerCoords -> CellCoords
 playerToCellCoords (PlayerCoords (x,y,z)) = (x,z,y)
 
-toMultiCoords :: CellCoords -> (RegionCoords, ChunkCoords, LocalCoords)
-toMultiCoords c = (regionCoords, chunkCoords, localCoords)
+toHierarchicalCoords :: CellCoords -> HierarchicalCoords
+toHierarchicalCoords c = (regionCoords, chunkCoords, localCoords)
   where
     regionCoords = toRegionCoords c
     chunkCoords = toChunkCoords c
     localCoords = toLocalCoords c
+
+-- Extractor functions for Hierarchical coordinates.
+getRegionCoords (r,_,_) = r
+getChunkCoords (_,c,_) = c
+getLocalCoords (_,_,l) = l
 
 -- We have to scale the cell value down to chunks (/16) and then
 -- scale that down to region (/32).

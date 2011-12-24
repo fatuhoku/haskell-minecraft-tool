@@ -27,7 +27,10 @@ import Types
 
 type BlockId = Byte
 type BlockDatum = Nybble -- Wraps a Word4
-data Block = Block BlockId BlockDatum
+data Block = Block {
+  blockId :: BlockId,
+  blockDatum :: BlockDatum
+  }
 
 -- A cell replacement represents the change of blocktype at some position
 -- in the game world to to the specified BlockType.
@@ -47,6 +50,8 @@ instance Binary BlockType where
       35 -> Wool
       _  -> error $ "Unsupported block type: " ++ show w
 
+toBlockId Wool = 35
+
 data WoolColour = White
                 | Orange
                 | Magenta
@@ -64,6 +69,24 @@ data WoolColour = White
                 | Red
                 | Black
                 deriving (Show, Eq)
+
+toDataValue :: WoolColour -> Word8
+toDataValue White      = 0
+toDataValue Orange     = 1
+toDataValue Magenta    = 2
+toDataValue LightBlue  = 3
+toDataValue Yellow     = 4
+toDataValue Lime       = 5
+toDataValue Pink       = 6
+toDataValue Gray       = 7
+toDataValue LightGray  = 8
+toDataValue Cyan       = 9
+toDataValue Purple     = 10
+toDataValue Blue       = 11
+toDataValue Brown      = 12
+toDataValue Green      = 13
+toDataValue Red        = 14
+toDataValue Black      = 15
 
 instance Binary WoolColour where
   get = do
