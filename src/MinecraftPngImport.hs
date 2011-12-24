@@ -105,18 +105,19 @@ putImage woolColours dir = do
   -- Now take the associations from the world image and work with it.
   undefined
 
+
 modifyWorld :: WorldDirectory -> [(CellCoords, Block)] -> IO ()
 modifyWorld dir changes = do
   -- This will be of the form (CellCoords, Block)
-  -- This calls for a grouping 
   let updateData = map (first toHierarchicalCoords) changes :: [((RegionCoords, ChunkCoords, LocalCoords),Block)]
   let regionChanges = groupBy ((==) `on` (fst3.fst)) updateData
   let regionNChunkChanges = map (groupBy ((==) `on` (snd3.fst))) regionChanges
 
-  -- Morph the cell coords into buildChunk lists
-  -- Grouping... How do I do it!
-  let func changes = (hc, buildChunkUpdate a)
-  let something = map (zip $ map func) regionNChunkChanges
+  -- We group by region, and within it, group by chunk.
+  -- We first annotate every batch of chunk updates with the chunk coordinate.
+
+
+  let something = map (convertChunkUpdates.map convertBlockUpdates) regionNChunkChanges
 
   -- Compute from global cell reference
   -- putStrLn $ putStrLn "Calculated coordinates..."
@@ -128,32 +129,31 @@ modifyWorld dir changes = do
   -- editFile (getRegionPath dir regionC) $ buildRegionUpdate
   putStrLn "Done!"
 
+convertBlockUpdates :: [(HierarchicalCoords, Block)] -> ((RegionCoords, ChunkCoords), Chunk -> Chunk)
+convertBlockUpdates blockUp@(((r,c,_),_):_) =
+    ((r,c), buildChunkUpdate $ map (first getLocalCoords) blockUp)
+convertChunkUpdates :: [((RegionCoords,ChunkCoords),Chunk -> Chunk)] -> (RegionCoords, Region -> Region)
+convertChunkUpdates chunkUp@(((r,c),_):_) =
+    (r, buildRegionUpdate $ map (first snd) chunkUp)
+
 -- There are a number of regions modified [((X,Z), Region -> Region)]
 -- ... this can be derived from a list of [((X,Z), Chunk -> Chunk)]
 -- that modify chunks; we group them by their region.
 
 -- Given a whole bunch of Chunk updates, we need to apply modify
-buildRegionUpdate :: [(ChunkCoord, Chunk -> Chunk)] -> (Region -> Region)
+buildRegionUpdate :: [(ChunkCoords, Chunk -> Chunk)] -> (Region -> Region)
 buildRegionUpdate [] = id
-buildRegionUpdate (((_,cc,_),f):us) = buildRegionUpdate us . modifyRegion cc (liftCc f)
+buildRegionUpdate ((cc,f):us) = buildRegionUpdate us . modifyRegion cc (liftCc f)
 
 -- Starting from the basics,
 -- Similarly, this can be derived from a list of updates to cells
 -- [(LocalCoords, Block)]
 -- Control.Arrow is very useful here.
-buildChunkUpdate :: [(HierarchicalCoords, Block)] -> (Chunk -> Chunk)
+buildChunkUpdate :: [(LocalCoords, Block)] -> (Chunk -> Chunk)
 buildChunkUpdate changes = updateChunk [
-  blockIdUpdates $ map (getLocalCoords *** blockId) changes,
-  blockDataUpdates $ map (getLocalCoords *** blockDatum) changes
+  blockIdUpdates $ map (second blockId) changes,
+  blockDataUpdates $ map (second blockDatum) changes
   ]
-
-
--- A group by function based on equality that records the key under which 
--- each thing has been categoried. Compares on the equality of a derived piece
--- of data. But clearly, if we do a groupBy and a nubBy we get the same
--- (Eq b) => (a -> b) -> (b -> b -> Bool) -> (b,[a])
-superGroupBy :: (Eq b) => (a -> b) -> (b -> b -> Bool) -> [a] -> (b,[a])
-superGroupBy f comp as = let bs = map f as in zip bs ()
 
 
 -- within each chunk update function, we update both block and data ids.
