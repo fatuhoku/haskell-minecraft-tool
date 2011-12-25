@@ -9,7 +9,7 @@ import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
 import Test.QuickCheck
-import qualified Data.ByteString.Lazy as L
+import qualified Data.ByteString.Lazy as B
 import qualified Test.HUnit as H
 
 import Access
@@ -88,7 +88,7 @@ nbt2 = CompoundTag (Just "Level") [
 chunkOfPure :: Word8 -> NBT
 chunkOfPure bid = 
   let size = fromIntegral numCellsInChunk
-      bs = L.pack (replicate numCellsInChunk bid) in
+      bs = B.pack (replicate numCellsInChunk bid) in
   ByteArrayTag (Just "Blocks") size bs
 
 -- Interesting; even though I've set all the blocks to pure gold, 9 appears.
@@ -101,7 +101,7 @@ chunkOfPureWhiteWool = let wool = 35 in chunkOfPure wool
 -- This represents white wool, or the default data value for any block.
 -- Create from numCellsInChunk nybbles of 0.
 -- Encoding puts it back into a bytestring.
-dataPureZero = let zeros = L.pack $ replicate size 0
+dataPureZero = let zeros = B.pack $ replicate size 0
                    size  = numCellsInChunk `div` 2
                    size' = fromIntegral size :: Int32 in
   ByteArrayTag (Just "Data") size' zeros
@@ -126,7 +126,7 @@ testUpdateChangesBlockIds = "Put wool block in gold chunk" ~:
     expectedBids@(BlockIds expectedArr) = BlockIds $ ids // [(locC,wool)]
     actualBids@(BlockIds actualArr) = decode $ getBlockIds nbt2' :: BlockIds
     nbt2' = updateChunk [updateBlocks] nbt2
-    updateBlocks = setBlockId locC wool
+    updateBlocks = blockIdUpdates [(locC,wool)]
     diffMsg = "The actual block data differs from expected. Here are some differences.\n"
               ++ show (diff 20 expectedArr actualArr) ++ "\n"
               ++ show (atMin expectedArr actualArr) ++ "\n"
@@ -138,7 +138,7 @@ testUpdateChangesBlockData = "Put different coloured wool block in wool chunk!" 
   (expectedBd == actualBd) ~? diffMsg
   where
     (BlockData d) = decode $ getBlockData nbt2 :: BlockData
-    updateData = setBlockDatum locC colour
+    updateData = blockDataUpdates [(locC,colour)]
     nbt2' = updateChunk [updateData] nbt2
     expectedBd@(BlockData expectedArr) = BlockData $ d // [(locC,colour)]
     actualBd@(BlockData actualArr) = decode $ getBlockData nbt2' :: BlockData
@@ -148,16 +148,16 @@ testUpdateChangesBlockData = "Put different coloured wool block in wool chunk!" 
     locC = (1,1,1)
     colour = 1
 
-getBlockIds :: NBT -> L.ByteString
+getBlockIds :: NBT -> B.ByteString
 getBlockIds n = fromJust $ do
   z3 <- moveToTag "Blocks" (toZipper n)
   z4 <- down z3 :: Maybe (Zipper NBT)
-  getHole z4 :: Maybe L.ByteString
+  getHole z4 :: Maybe B.ByteString
 
 getBlockData n = fromJust $ do
   z3 <- moveToTag "Data" (toZipper n)
   z4 <- down z3 :: Maybe (Zipper NBT)
-  getHole z4 :: Maybe L.ByteString
+  getHole z4 :: Maybe B.ByteString
 
 {- Properties -}
 
@@ -265,10 +265,10 @@ instance Arbitrary BlockData where
       arrMin = (0,0,0)
       arrMax = (chunkSizeX-1, chunkSizeZ-1, chunkSizeY-1)
     
-instance Arbitrary L.ByteString where
-  arbitrary     = elements [L.cons 100 $ L.cons 200 L.empty, L.cons 100 L.empty]
--- instance Arbitrary L.ByteString where
+instance Arbitrary B.ByteString where
+  arbitrary     = elements [B.cons 100 $ B.cons 200 B.empty, B.cons 100 B.empty]
+-- instance Arbitrary B.ByteString where
 --   arbitrary     = do
 --     bytes <- arbitrary :: Gen [Word8]
 --     guard $ (not.null) bytes
---     return $ L.pack bytes
+--     return $ B.pack bytes

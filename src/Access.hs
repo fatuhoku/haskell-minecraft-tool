@@ -18,6 +18,7 @@ import Block
 import Coords
 import Chunk
 import Types
+import Utils
 
 -- value = undefined
 -- let g1 = toZipper nbt1 in
@@ -35,7 +36,7 @@ import Types
 -- ways...
 -- TODO move foldr1 (.) fs into its own function 'compose'
 updateChunk :: [NBT -> NBT] -> Chunk -> Chunk
-updateChunk fs = everywhere $ mkT $ foldr1 (.) fs
+updateChunk fs = (everywhere $ mkT $ foldr1 (.) fs) . vtrace "Updating NBT: " 
 
 -------------------------------------------------
 -- START FUNCTIONS
@@ -67,8 +68,8 @@ blockDataUpdates :: [(LocalCoords, BlockDatum)] ->  NBT -> NBT
 blockDataUpdates updates (ByteArrayTag (Just "Data") _ bs) = 
   ByteArrayTag (Just "Data") (fromIntegral numCellsInChunk `div` 2) bs'
   where
-    bids = decode bs :: BlockData
-    bs' = encode $ f bids
+    bData = decode bs :: BlockData
+    bs' = encode $ f bData
     f (BlockData arr) = BlockData $ arr // updates
 blockDataUpdates _ nbt = nbt
 

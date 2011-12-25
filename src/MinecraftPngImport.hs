@@ -14,6 +14,7 @@ module Main where
 
 import Control.Arrow
 import Control.Monad
+import Data.Array.IArray
 import Data.Binary
 import Data.Maybe
 import System.Directory
@@ -32,11 +33,8 @@ import Level
 import Region
 import Types
 import World
-import Data.Array.IArray
-import Control.Arrow
-import Data.List
-import Data.Function
-import Data.Tuple.HT
+
+type WoolColours = Array (Int,Int) WoolColour
 
 {-
  - TODO There is a very obvious failure case when running this program.
@@ -74,7 +72,6 @@ minecraftPngImport png dir = do
   let woolImage = amap quantize image
   putImage woolImage dir
 
-type WoolColours = Array (Int,Int) WoolColour
 putImage :: WoolColours -> WorldDirectory -> IO ()
 putImage woolColours dir = do
   -- Validate the directory structure.
@@ -98,82 +95,21 @@ putImage woolColours dir = do
   -- Offset the entire image by the playerCell.
   -- Here's the mapping of cell coordinates onto the image coordinates.
   let (minPix,maxPix) = bounds woolBlocks
-  let offset (x,y) = (x+px,py+5,y+pz)
+  let offset (x,y) = (x+px,y+pz,py+5)
   let offset' (cx,cz,cy) = (cx-px,cz-pz)
   let worldImage = ixmap (offset minPix, offset maxPix) offset' woolBlocks
 
+  putStr $ "The bounds for the image are:"
+  putStrLn $ show (minPix,maxPix)
+  putStr $ "The bounds for the image in the world are:"
+  putStrLn $ show $ bounds worldImage
+
+  let changes = assocs worldImage
+  putStrLn $ show changes
+
   -- Now take the associations from the world image and work with it.
-  undefined
-
-
-modifyWorld :: WorldDirectory -> [(CellCoords, Block)] -> IO ()
-modifyWorld dir changes = do
-  -- This will be of the form (CellCoords, Block)
-  let updateData = map (first toHierarchicalCoords) changes :: [((RegionCoords, ChunkCoords, LocalCoords),Block)]
-  let regionChanges = groupBy ((==) `on` (fst3.fst)) updateData
-  let regionNChunkChanges = map (groupBy ((==) `on` (snd3.fst))) regionChanges
-
-  -- We group by region, and within it, group by chunk.
-  -- We first annotate every batch of chunk updates with the chunk coordinate.
-
-
-  let something = map (convertChunkUpdates.map convertBlockUpdates) regionNChunkChanges
-
-  -- Compute from global cell reference
-  -- putStrLn $ putStrLn "Calculated coordinates..."
-  -- putStrLn $ "  region: " ++ show regionC
-  -- putStrLn $ "  chunk: " ++ show chunkC
-  -- putStrLn $ "  local: " ++ show locC
-
-  -- Update all the regions.
-  -- editFile (getRegionPath dir regionC) $ buildRegionUpdate
+  performWorldUpdate dir changes
   putStrLn "Done!"
-
-convertBlockUpdates :: [(HierarchicalCoords, Block)] -> ((RegionCoords, ChunkCoords), Chunk -> Chunk)
-convertBlockUpdates blockUp@(((r,c,_),_):_) =
-    ((r,c), buildChunkUpdate $ map (first getLocalCoords) blockUp)
-convertChunkUpdates :: [((RegionCoords,ChunkCoords),Chunk -> Chunk)] -> (RegionCoords, Region -> Region)
-convertChunkUpdates chunkUp@(((r,c),_):_) =
-    (r, buildRegionUpdate $ map (first snd) chunkUp)
-
--- There are a number of regions modified [((X,Z), Region -> Region)]
--- ... this can be derived from a list of [((X,Z), Chunk -> Chunk)]
--- that modify chunks; we group them by their region.
-
--- Given a whole bunch of Chunk updates, we need to apply modify
-buildRegionUpdate :: [(ChunkCoords, Chunk -> Chunk)] -> (Region -> Region)
-buildRegionUpdate [] = id
-buildRegionUpdate ((cc,f):us) = buildRegionUpdate us . modifyRegion cc (liftCc f)
-
--- Starting from the basics,
--- Similarly, this can be derived from a list of updates to cells
--- [(LocalCoords, Block)]
--- Control.Arrow is very useful here.
-buildChunkUpdate :: [(LocalCoords, Block)] -> (Chunk -> Chunk)
-buildChunkUpdate changes = updateChunk [
-  blockIdUpdates $ map (second blockId) changes,
-  blockDataUpdates $ map (second blockDatum) changes
-  ]
-
-
--- within each chunk update function, we update both block and data ids.
--- For the chunk updates to be efficient, the block updates and data updates
--- should be done in bulk ([(CellCoord, Value)])
--- Let's do the bulk update thing first.
---
--- An alternative view of the World would be to use multi-dimensional arrays
--- to locate CompressedChunks.
--- What would be cool is if
--- (RegionCoords,ChunkCoords)....
-
-  
-fiveBlocksAbove :: CellCoords -> CellCoords 
-fiveBlocksAbove (x,z,y) = (x,z,y+5)
-
-validateMinecraftDirectoryStructure dir = do
-  levelDatPresent <- doesFileExist $ getLevelPath dir
-  regionDirectoryPresent <- doesDirectoryExist $ getRegionDir dir
-  return $ levelDatPresent && regionDirectoryPresent
 
 printUsage :: IO ()
 printUsage = do

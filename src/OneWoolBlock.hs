@@ -19,9 +19,10 @@ import System.IO
 import qualified Data.ByteString.Lazy as B
 
 import Access
-import FileIO
+import Block
 import Chunk
 import Coords
+import FileIO
 import Level
 import Region
 import Types
@@ -73,34 +74,19 @@ oneBlock dir = do
   let playerC = fromJust $ getPlayerCoords level
 
   -- Compute the global region, chunk and chunk-local cell coordinates
-  let (regionC, chunkC, locC) = (toMultiCoords.playerToCellCoords) playerC
+  let cellCoord = playerToCellCoords playerC
   putStrLn "Extracted coordinates..."
   putStrLn $ "  player: " ++ show playerC
-  putStrLn $ "  region: " ++ show regionC
-  putStrLn $ "  chunk: " ++ show chunkC
-  putStrLn $ "  local: " ++ show locC
 
   -- edit the first region?
-  let woolId = 35    -- wool id
-  let whiteDatum = 0 -- white colour
-  let updateBlocks = setBlockId (fiveBlocksAbove locC) woolId
-  let updateData = setBlockDatum (fiveBlocksAbove locC) whiteDatum
-
+  -- This is simply an update of one block, 
+  let changes = [(fiveBlocksAbove cellCoord, (Block (toBlockId Wool) (toDataValue Black)))]
   putStrLn "Updating region..."
-  let updateRegion = modifyRegion chunkC $ modifyCc $ updateChunk [updateBlocks,updateData]
-  edit (getRegionPath dir regionC) updateRegion
-
+  performWorldUpdate dir changes
   putStrLn "Done!"
-  where
-    func' f (Region arr) = Region (f arr)
   
 fiveBlocksAbove :: CellCoords -> CellCoords 
 fiveBlocksAbove (x,z,y) = (x,z,y+5)
-
-validateMinecraftDirectoryStructure dir = do
-  levelDatPresent <- doesFileExist $ getLevelPath dir
-  regionDirectoryPresent <- doesDirectoryExist $ getRegionDir dir
-  return $ levelDatPresent && regionDirectoryPresent
 
 printUsage :: IO ()
 printUsage = do

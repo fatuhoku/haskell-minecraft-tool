@@ -20,7 +20,7 @@ main = do
       let [worldPath, regionCStr] = args
           regionC = read regionCStr
           idRegion = id :: Region -> Region
-      in edit (getPath worldPath (RegionPathParams regionC)) idRegion
+      in editFile (getPath worldPath (RegionPathParams regionC)) idRegion
     else do
       putStrLn "Please pass in a file path and the region coordinates." 
       printUsage

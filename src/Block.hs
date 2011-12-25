@@ -30,7 +30,7 @@ type BlockDatum = Nybble -- Wraps a Word4
 data Block = Block {
   blockId :: BlockId,
   blockDatum :: BlockDatum
-  }
+  } deriving Show
 
 -- A cell replacement represents the change of blocktype at some position
 -- in the game world to to the specified BlockType.

@@ -88,7 +88,8 @@ Executable oneblock
                      pretty-show,
                      derive>=2.5.4, colour, array,
                      utility-ht, data-ordlist, binary-strict,
-                     syz, syb, filepath, split, Codec-Image-DevIL
+                     syz, syb, filepath, split, Codec-Image-DevIL,
+                     list-extras
 
 Executable minecraft-png-import
      Main-is:        MinecraftPngImport.hs
