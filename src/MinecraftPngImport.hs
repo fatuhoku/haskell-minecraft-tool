@@ -101,13 +101,7 @@ putImage woolColours dir = do
 
   putStr $ "The bounds for the image are:"
   putStrLn $ show (minPix,maxPix)
-  putStr $ "The bounds for the image in the world are:"
-  putStrLn $ show $ bounds worldImage
-
   let changes = assocs worldImage
-  putStrLn $ show changes
-
-  -- Now take the associations from the world image and work with it.
   performWorldUpdate dir changes
   putStrLn "Done!"
 

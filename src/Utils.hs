@@ -30,10 +30,16 @@ toMaybe p x
 	| otherwise = Nothing
 
 -- Unpacks Byte to a pair of nybbles.
+-- Note: in Minecraft, the Data, Skylight etc. arrays
+-- have the least significant nybble first. Make sure the result of this
+-- function is swapped before proceeding
 toNybbles :: Byte -> (Nybble,Nybble)
 toNybbles b = (b `shiftR` 4, b `mod` (2^4))
 
 -- Precondition is that both input nybbles need to be under 128.
+-- Note: in Minecraft, the Data, Skylight etc. arrays
+-- have the least significant nybble first. Make sure the argument of the
+-- function has its most significant bytes first.
 fromNybbles :: (Nybble,Nybble) -> Byte 
 fromNybbles (n1,n2) = (n1 `shiftL` 4) + (n2 `mod` (2^4))
 

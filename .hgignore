@@ -4,6 +4,7 @@ syntax: glob
 *.hi
 *.orig
 *.bak
+worlds
 session.lock
 dist/
 .DS_Store

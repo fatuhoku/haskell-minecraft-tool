@@ -59,18 +59,21 @@ instance Binary BlockIds where
 instance Binary BlockData where
   get = do
     bytes <- replicateM (numCellsInChunk `div` 2) getWord8
-    let nybbles = concatMap (tupleToList.toNybbles) bytes
+    let nybbles = concatMap (tupleToList.swap.toNybbles) bytes
     return . BlockData $ array (arrMin, arrMax) $ zip indices nybbles
     where
       arrMin = (0,0,0)
       arrMax = (chunkSizeX-1,chunkSizeZ-1,chunkSizeY-1)
+      swap (a,b) = (b,a)
  
   -- bds is an array of nybbles)...
-  put (BlockData bds) = mapM_ (putWord8.fromNybbles) $ zip odds evens
+  put (BlockData bds) = mapM_ (putWord8.fromNybbles) $ zip msn lsn
     where
       nybbles = (bds !) <$> indices
-      odds = map fst $ filter snd $ zip nybbles $ cycle [True,False]
-      evens = map fst $ filter snd $ zip nybbles $ cycle [False,True]
+      -- Most and least significant nybbles
+      -- The list goes [least,most,least,most]...
+      lsn = map fst $ filter snd $ zip nybbles $ cycle [True,False]
+      msn = map fst $ filter snd $ zip nybbles $ cycle [False,True]
 
 
 {- CHUNK EDIT FUNCTIONS -}
