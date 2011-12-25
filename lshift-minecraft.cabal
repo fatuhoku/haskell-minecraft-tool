@@ -55,7 +55,7 @@ Test-Suite test-lshift-minecraft
                      list-extras, binary-strict,
                      test-framework, test-framework-quickcheck2,
                      QuickCheck, filepath, test-framework-hunit,
-                     HUnit, syb, syz
+                     HUnit, syb, syz, Cabal
 
 Executable get-player-coords
   -- .hs or .lhs file containing the Main module.

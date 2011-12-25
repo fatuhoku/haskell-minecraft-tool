@@ -115,8 +115,8 @@ buildRegionUpdate ((cc,f):us) = buildRegionUpdate us . modifyRegion cc (liftCc f
 -- Control.Arrow is very useful here.
 buildChunkUpdate :: [(LocalCoords, Block)] -> (Chunk -> Chunk)
 buildChunkUpdate changes = updateChunk [
-  blockIdUpdates $ map (second blockId) changes,
-  blockDataUpdates $ map (second blockDatum) changes
+  blockDataUpdates $ map (second blockDatum) changes,
+  blockIdUpdates $ map (second blockId) changes
   ]
 
 validateMinecraftDirectoryStructure dir = do

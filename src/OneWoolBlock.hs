@@ -67,7 +67,10 @@ oneBlock dir = do
   
   -- TODO this function isn't implemented yet!
   -- (World (Level lvl) regions) <- loadWorld dir
+  putOneBlock dir $ Block (toBlockId Wool) (toDataValue Black)
 
+putOneBlock :: WorldDirectory -> Block -> IO ()
+putOneBlock dir block = do
   -- Just assume the path is valid.
   putStrLn "Reading level..."
   (Level level) <- decodeFile $ getLevelPath dir :: IO Level
@@ -78,9 +81,10 @@ oneBlock dir = do
   putStrLn "Extracted coordinates..."
   putStrLn $ "  player: " ++ show playerC
 
-  -- edit the first region?
-  -- This is simply an update of one block, 
-  let changes = [(fiveBlocksAbove cellCoord, (Block (toBlockId Wool) (toDataValue Black)))]
+  -- Edit the first region?
+  -- Expect that the colour is also there. The only reason this isn't happening
+  -- is because the data hasn't been updated.
+  let changes = [(fiveBlocksAbove cellCoord, block)]
   putStrLn "Updating region..."
   performWorldUpdate dir changes
   putStrLn "Done!"

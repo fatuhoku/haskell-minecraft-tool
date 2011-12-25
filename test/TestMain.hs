@@ -4,10 +4,17 @@ module Main where
 import Control.Monad
 import Data.Array
 import Data.Binary
+import Data.Generics.Zipper
+import Data.Int
 import Data.List
+import Data.Maybe
+import Data.NBT
+import Distribution.Simple.Utils
+import Distribution.Verbosity
 import Test.Framework
 import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
+import Test.HUnit.Base hiding (Test)
 import Test.QuickCheck
 import qualified Data.ByteString.Lazy as B
 import qualified Test.HUnit as H
@@ -16,14 +23,13 @@ import Access
 import Block
 import Chunk
 import Coords
+import Level
+import FileIO
 import Region
+import NBTExtras
 import Types
 import Utils
-import Data.NBT
-import Data.Int
-import Test.HUnit.Base hiding (Test)
-import Data.Maybe
-import Data.Generics.Zipper
+import World
 
 {- The LShift-Minecraft test suite.
  -
@@ -53,7 +59,8 @@ testUnit = testGroup "Unit tests" [
             testMoveToBlockId,
             testMoveToBlockData,
             testUpdateChangesBlockIds,
-            testUpdateChangesBlockData
+            testUpdateChangesBlockData,
+            testOneBlockPlacesCorrectlyColouredWoolInWorld
           ]
         ]
   
@@ -77,8 +84,8 @@ nbt1 = CompoundTag (Just "Level") [
   ByteArrayTag (Just "Data") 1 (1 `B.cons` B.empty)
   ]
 
-
--- A simple NBT representing a 16x128x16 block of pure gold.
+-- A simple NBT representing a 16x16x128 block of pure gold.
+-- The data field is notably 0.
 nbt2 :: NBT 
 nbt2 = CompoundTag (Just "Level") [
   chunkOfPureGold,
@@ -133,20 +140,87 @@ testUpdateChangesBlockIds = "Put wool block in gold chunk" ~:
     locC = (1,1,1)
     wool = 35
 
+-- This test reads the BlockData from nbt2, produces nbt2' by updating its Data
+-- then compares the expected array with the (nbt2+delta) updatedData...
 testUpdateChangesBlockData :: H.Test
 testUpdateChangesBlockData = "Put different coloured wool block in wool chunk!" ~:
   (expectedBd == actualBd) ~? diffMsg
   where
-    (BlockData d) = decode $ getBlockData nbt2 :: BlockData
-    updateData = blockDataUpdates [(locC,colour)]
-    nbt2' = updateChunk [updateData] nbt2
     expectedBd@(BlockData expectedArr) = BlockData $ d // [(locC,colour)]
     actualBd@(BlockData actualArr) = decode $ getBlockData nbt2' :: BlockData
+    (BlockData d) = decode $ getBlockData nbt2 :: BlockData
+    nbt2' = updateChunk [blockDataUpdates [(locC,colour)]] nbt2
     diffMsg = "The actual block data differs from expected. Here are some differences.\n"
               ++ show (diff 20 expectedArr actualArr) ++ "\n"
               ++ show (atMin expectedArr actualArr) ++ "\n"
     locC = (1,1,1)
     colour = 1
+
+-- Copy the world into a new location (testworld_copy)
+-- Run the putting of a block of wool five blocks above the player's head
+-- Read the file again, and ensure that the black wool block is found, as
+-- expected, on top of the player's head.
+testOneBlockPlacesCorrectlyColouredWoolInWorld :: H.Test
+testOneBlockPlacesCorrectlyColouredWoolInWorld = "Modify the world, and observe that it has changed" ~:
+  TestCase $ do
+    worldCopy <- makeCopy "_copy" "worlds/testworld"
+    let testId = 35    -- wool
+    let testDatum = 15 -- black
+    let testBlock = Block testId testDatum
+    woolCoord <- putOneBlock worldCopy testBlock
+    assertBlock worldCopy woolCoord testBlock
+
+makeCopy suffix dir = do
+  let newDir = dir++suffix
+  copyDirectoryRecursiveVerbose silent dir newDir
+  return newDir
+
+-- Asserts that a world has a particular block at a particular place.
+assertBlock :: WorldDirectory -> CellCoords ->  Block -> IO ()
+assertBlock dir cell block = do
+  let (r,c,l) = toHierarchicalCoords cell
+  (Region region) <- loadRegion dir r
+  case region ! c of
+    Nothing -> fail $ "No such region: " ++ show r
+    Just cc -> do
+      let chunk = chunkFromCc cc
+      -- Do two things here: check that the location
+      -- - has the right block id
+      --    bat is a bytearraytag
+      let (Just bytes) = getData $ fromJust $ moveToTag "Blocks" $ toZipper chunk :: Maybe B.ByteString
+      let (BlockIds bids) = decode bytes :: BlockIds
+      let expected = blockId block
+      let actual = bids ! l
+      putStrLn $ "The observed block Id is: " ++ show actual
+      assertEqual "BlockIds disagree: " expected actual
+
+      let (Just bytes) = getData $ fromJust $ moveToTag "Data" $ toZipper chunk :: Maybe B.ByteString
+      let (BlockData bd) = decode bytes :: BlockData
+      let expected = blockDatum block
+      let actual = bd ! l
+      putStrLn $ "The observed block data is: " ++ show actual
+      assertEqual "BlockDatas disagree: " expected actual
+  
+  
+-- This is a complete copy of the OneWoolBlock program - it puts one block 5
+-- blocks above the player's head.
+putOneBlock :: WorldDirectory -> Block -> IO CellCoords
+putOneBlock dir block = do
+  putStrLn "Reading level..."
+  (Level level) <- decodeFile $ getLevelPath dir :: IO Level
+  let playerC = fromJust $ getPlayerCoords level
+  let cellCoord = playerToCellCoords playerC
+  putStrLn "Extracted coordinates..."
+  putStrLn $ "  player: " ++ show playerC
+  let woolCoord = fiveBlocksAbove cellCoord
+  let changes = [(woolCoord, block)]
+  putStrLn "Updating region..."
+  performWorldUpdate dir changes
+  putStrLn "Done!"
+  return woolCoord
+
+fiveBlocksAbove :: CellCoords -> CellCoords 
+fiveBlocksAbove (x,z,y) = (x,z,y+5)
 
 getBlockIds :: NBT -> B.ByteString
 getBlockIds n = fromJust $ do

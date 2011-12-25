@@ -112,20 +112,5 @@ getPlayerCoords nbt = do
   let [x,y,z] = catMaybes $ map (getData.toZipper) posList :: [Double]
   let [x',y',z'] = map truncate [x,y,z]
   Just $ PlayerCoords (x',y',z')
-  where
-    getList (ListTag _ _ _ list) = list
-
-    -- Get the rightmost (down) element of a zipper is the relevant data:
-    --   ByteTag -> Int8
-    --   ShortTag -> Int16
-    --   IntTag (Maybe String) Int32	 
-    --   LongTag -> Int64	 
-    --   FloatTag -> Float	 
-    --   DoubleTag -> Double	 
-    --   ByteArrayTag -> ByteString	 
-    --   StringTag -> String	 
-    --   ListTag -> [NBT]	 
-    --   CompoundTag -> [NBT]
-    getData nbt = down nbt >>= getHole
 -- getPlayerCoords _ = error "Invalid level.dat NBT: does not begin with Data CompoundTag"
 

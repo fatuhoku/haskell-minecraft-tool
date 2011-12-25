@@ -3,6 +3,8 @@ syntax: glob
 *.o
 *.hi
 *.orig
+*.bak
+session.lock
 dist/
 .DS_Store
 .git/

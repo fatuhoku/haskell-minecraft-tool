@@ -19,6 +19,7 @@ import Coords
 import Chunk
 import Types
 import Utils
+import Control.Applicative
 
 -- value = undefined
 -- let g1 = toZipper nbt1 in
@@ -31,12 +32,16 @@ import Utils
 -- 1) Find the Blocks array and update it.
 -- 2) Find the Data array and update it.
 --
+-- For some reason, the series of updates couldn't be performed all at the same
+-- time. I'm not sure why...
+--
 -- We will just leave all the timestamps the same as before, for simplicity.
 -- We accept a number of transformations that would modify the NBT in many
 -- ways...
 -- TODO move foldr1 (.) fs into its own function 'compose'
 updateChunk :: [NBT -> NBT] -> Chunk -> Chunk
-updateChunk fs = (everywhere $ mkT $ foldr1 (.) fs) . vtrace "Updating NBT: " 
+updateChunk [] chunk = chunk
+updateChunk (f:fs) chunk = updateChunk fs (everywhere (mkT f) chunk) -- . vtrace "Updating NBT: " 
 
 -------------------------------------------------
 -- START FUNCTIONS
@@ -59,18 +64,16 @@ blockIdUpdates :: [(LocalCoords, BlockId)] ->  NBT -> NBT
 blockIdUpdates updates (ByteArrayTag (Just "Blocks") _ bs) = 
   ByteArrayTag (Just "Blocks") (fromIntegral numCellsInChunk) bs'
   where
-    bids = decode bs :: BlockIds
-    f (BlockIds arr) = BlockIds $ arr // updates
-    bs' = encode (f bids)
+    (BlockIds arr) = decode bs :: BlockIds
+    bs' = encode $ BlockIds (arr // updates)
 blockIdUpdates _ nbt = nbt
 
 blockDataUpdates :: [(LocalCoords, BlockDatum)] ->  NBT -> NBT
 blockDataUpdates updates (ByteArrayTag (Just "Data") _ bs) = 
   ByteArrayTag (Just "Data") (fromIntegral numCellsInChunk `div` 2) bs'
   where
-    bData = decode bs :: BlockData
-    bs' = encode $ f bData
-    f (BlockData arr) = BlockData $ arr // updates
+    (BlockData arr) = decode bs :: BlockData
+    bs' = encode $ BlockData (arr // updates)
 blockDataUpdates _ nbt = nbt
 
 -------------------------------------------------

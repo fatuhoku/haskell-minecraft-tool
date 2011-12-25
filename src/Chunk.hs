@@ -32,10 +32,10 @@ data BlockIds = BlockIds (Array CellCoords BlockId)
 
 -- Fully represents the "Data" TAG_Byte_Array tag of the ChunkNBT.
 data BlockData = BlockData (Array CellCoords BlockDatum)
-  deriving (Eq)
+  deriving (Eq,Show)
 
-instance Show BlockData where
-  show (BlockData bd) = "BlockData: ["++show (bounds bd)++"]"
+-- instance Show BlockData where
+--   show (BlockData bd) = "BlockData: ["++show (bounds bd)++"]"
 
 
 indices = [(x,z,y) | x <- [0..chunkSizeX-1],
@@ -84,6 +84,11 @@ liftCc f cc@(CompressedChunk chunkData format ts) =
     -- A bit like a functor instance. Lifts NBTs to the level of CompressedChunks
     mapCc :: (B.ByteString -> B.ByteString) -> CompressedChunk -> CompressedChunk
     mapCc g cc@(CompressedChunk cnbt _ _) = cc {compressedChunkNbt=g cnbt}
+
+-- Decompresses an NBT from a compressed chunk, discarding the timestamp
+chunkFromCc :: CompressedChunk -> Chunk
+chunkFromCc cc@(CompressedChunk chunkData format ts) =
+  decode $ decompressWith format chunkData
 
 decompressWith :: CompressionFormat -> B.ByteString -> B.ByteString
 decompressWith format = case format of
