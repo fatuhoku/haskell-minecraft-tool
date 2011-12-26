@@ -34,7 +34,7 @@ import Region
 import Types
 import World
 
-type WoolColours = Array (Int,Int) WoolColour
+type BlocksArray = Array (Int,Int) Block
 
 {-
  - TODO There is a very obvious failure case when running this program.
@@ -69,17 +69,14 @@ main = do
 minecraftPngImport :: FilePath -> WorldDirectory -> IO ()
 minecraftPngImport png dir = do
   image <- readPngImageData png
-  let woolImage = amap quantize image
-  putImage woolImage dir
+  let blocksArray = amap quantize image
+  putImage blocksArray dir
 
-putImage :: WoolColours -> WorldDirectory -> IO ()
-putImage woolColours dir = do
+putImage :: BlocksArray -> WorldDirectory -> IO ()
+putImage blocksArray dir = do
   -- Validate the directory structure.
   valid <- validateMinecraftDirectoryStructure dir
   when (not valid) . error $ "The given directory " ++ dir ++ " is not a valid Minecraft world."
-
-  -- Compute wool blocks which we will set.
-  let woolBlocks = amap (Block (toBlockId Wool).toDataValue) woolColours
   
   -- we offset the Just assume the path is valid.
   putStrLn "Reading level..."
@@ -94,10 +91,10 @@ putImage woolColours dir = do
   
   -- Offset the entire image by the playerCell.
   -- Here's the mapping of cell coordinates onto the image coordinates.
-  let (minPix,maxPix) = bounds woolBlocks
+  let (minPix,maxPix) = bounds blocksArray
   let offset (x,y) = (x+px,y+pz,py+5)
   let offset' (cx,cz,cy) = (cx-px,cz-pz)
-  let worldImage = ixmap (offset minPix, offset maxPix) offset' woolBlocks
+  let worldImage = ixmap (offset minPix, offset maxPix) offset' blocksArray
 
   putStr $ "The bounds for the image are:"
   putStrLn $ show (minPix,maxPix)

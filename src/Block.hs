@@ -26,6 +26,13 @@ import Types
  - -}
 
 type BlockId = Byte
+-- TODO Make the Block declaration more like
+-- data Block = Air | Wood WoodType | SugarCane GrowthLevel |  Wool WoolColour ...
+-- Where each of WoodType, WoolColour, GrowthLevel
+-- have generic functions that map each of their levels onto an integer.
+-- Hopefully, then it would be possible write a generic function 
+-- Block -> (Byte, Nybble) that transforms a block into its binary
+-- representation.
 type BlockDatum = Nybble -- Wraps a Word4
 data Block = Block {
   blockId :: BlockId,
@@ -40,16 +47,19 @@ data Block = Block {
 --   dataId  :: DataType
 --   }
 
-data BlockType = Wool
+data BlockType = Air | Wool
 
 instance Binary BlockType where
-  put Wool = put (35 :: Word32)
+  put b = put $ (toBlockId b :: Word32)
   get = do
     w <- get :: Get Word32
     return $ case w of
+      0 -> Air
       35 -> Wool
       _  -> error $ "Unsupported block type: " ++ show w
 
+-- TODO Make this kind of function generic
+toBlockId Air = 0
 toBlockId Wool = 35
 
 data WoolColour = White
@@ -70,6 +80,7 @@ data WoolColour = White
                 | Black
                 deriving (Show, Eq)
 
+-- TODO make this function generic
 toDataValue :: WoolColour -> Word8
 toDataValue White      = 0
 toDataValue Orange     = 1
