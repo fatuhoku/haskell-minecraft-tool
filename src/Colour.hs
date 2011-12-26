@@ -7,8 +7,13 @@ import Devil
 import Types
 
 -- Map the given colour onto the closest WoolColour.
-quantize :: Rgba -> WoolColour
-quantize c = fst $ argmin (flip dist c . snd) woolColours
+-- Then again, I need it to output something else, not just wool colours.
+-- I want it to output a Block.
+quantize :: Rgba -> Block
+quantize (_,_,_,0) = Block (toBlockId Air) 0
+quantize c =
+  let closestColour = fst $ argmin (flip dist c . snd) woolColours
+  in Block (toBlockId Wool) (toDataValue closestColour)
 
 -- a `dist` b is the distance from a to b (this is b-a)
 dist :: Rgba -> Rgba -> Double
