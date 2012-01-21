@@ -101,6 +101,8 @@ instance Binary CompressionFormat where
 {- REGION EDIT FUNCTIONS -}
 
 -- Given a region-local chunk coordinate, we update that chunk in our region.
+-- The region is jsut a bunch of Compressed Chunks. I can just give a bfmap
+-- functor update.
 modifyRegion :: ChunkCoords -> (CompressedChunk -> CompressedChunk) -> Region -> Region
 modifyRegion coords f (Region arr) =
   let mCompressedChunk = arr ! coords :: Maybe CompressedChunk in

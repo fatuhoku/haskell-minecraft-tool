@@ -18,6 +18,8 @@ import qualified Data.ByteString.Lazy as B
 import Codec.Compression.GZip as GZip
 import Codec.Compression.Zlib as Zlib
 import Control.Applicative
+import Compression
+import Data.Array
 import Data.Binary
 import Data.NBT
 import Text.Printf
@@ -34,6 +36,7 @@ import Types
 import World
 import System.FilePath.Posix
 import Control.Arrow
+import Control.Monad
 import Data.List
 import Data.Function
 import Data.Tuple.HT
@@ -103,11 +106,29 @@ convertChunkUpdates chunkUp@(((r,c),_):_) =
 -- There are a number of regions modified [((X,Z), Region -> Region)]
 -- ... this can be derived from a list of [((X,Z), Chunk -> Chunk)]
 -- that modify chunks; we group them by their region.
-
--- Given a whole bunch of Chunk updates, we need to apply modify
+-- Collapses the list of region-local chunk coordinates and chunk update pairs
+-- into a single region update function.
+--
+-- Some Funcky lifting is happening here: use bfmap.fmap to lift a function f of
+-- type f :: Chunk -> Chunk
+-- to
+-- Compressed Chunk -> Compressed Chunk 
+-- to
+-- f' :: Maybe (Compressed Chunk) -> Maybe (Compressed Chunk)
+-- FIXME I need to sort this region update code out.
 buildRegionUpdate :: [(ChunkCoords, Chunk -> Chunk)] -> (Region -> Region)
-buildRegionUpdate [] = id
-buildRegionUpdate ((cc,f):us) = buildRegionUpdate us . modifyRegion cc (liftCc f)
+buildRegionUpdate chunkCoordsAndUpdates (Region region) =
+  Region $ region // arrayUpdates
+  where
+    (chunkCoords, chunkUpdates) = unzip chunkCoordsAndUpdates
+    maybeCompressedChunkUpdates = map (fmap.bfmap) chunkUpdates
+    arrayUpdates = zip chunkCoords newChunks
+    newChunks = zipApply maybeCompressedChunkUpdates $ (region !) <$> chunkCoords
+    zipApply = zipWith ($)
+    
+
+-- buildRegionUpdate [] = id
+-- buildRegionUpdate ((cc,f):us) = buildRegionUpdate us . modifyRegion cc (liftCc f)
 
 -- Starting from the basics,
 -- Similarly, this can be derived from a list of updates to cells

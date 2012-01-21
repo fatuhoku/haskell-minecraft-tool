@@ -48,7 +48,8 @@ data CompressionFormat = GZip | Zlib deriving (Eq, Show)
 
 type Timestamp = Word32
 
-type Chunk = NBT
+-- The chunks are simply 
+data Chunk = Chunk Timestamp NBT
 type Byte = Word8
 type Nybble = Word8 -- Waps a Nybble
 

@@ -77,31 +77,33 @@ instance Binary BlockData where
 
 
 {- CHUNK EDIT FUNCTIONS -}
+-- FIXME Remove Chunk editing functions concerning compression.
 -- Does not update timestamps! Uses the same compression method!
 -- Lifts a function on NBTs to a function on CompressedChunks
 -- by wrapping the appropriate compression and decompression around the sides.
-liftCc :: (NBT -> NBT) -> CompressedChunk -> CompressedChunk
-liftCc f cc@(CompressedChunk chunkData format ts) =
-  mapCc (compressWith format.encode.f.decode.decompressWith format) cc
-  where 
-    -- A bit like a functor instance. Lifts NBTs to the level of CompressedChunks
-    mapCc :: (B.ByteString -> B.ByteString) -> CompressedChunk -> CompressedChunk
-    mapCc g cc@(CompressedChunk cnbt _ _) = cc {compressedChunkNbt=g cnbt}
-
--- Decompresses an NBT from a compressed chunk, discarding the timestamp
-chunkFromCc :: CompressedChunk -> Chunk
-chunkFromCc cc@(CompressedChunk chunkData format ts) =
-  decode $ decompressWith format chunkData
-
-decompressWith :: CompressionFormat -> B.ByteString -> B.ByteString
-decompressWith format = case format of
-  GZip -> GZip.decompress
-  Zlib -> Zlib.decompress
-
-compressWith :: CompressionFormat -> B.ByteString -> B.ByteString
-compressWith format = case format of
-  GZip -> GZip.compress
-  Zlib -> Zlib.compress
+-- liftCc :: (NBT -> NBT) -> CompressedChunk -> CompressedChunk
+-- liftCc f cc@(CompressedChunk chunkData format ts) =
+--   mapCc (compressWith format.encode.f.decode.decompressWith format) cc
+--   where 
+--     -- A bit like a functor instance. Lifts NBTs to the level of CompressedChunks
+--     mapCc :: (B.ByteString -> B.ByteString) -> CompressedChunk -> CompressedChunk
+--     mapCc g cc@(CompressedChunk cnbt _ _) = cc {compressedChunkNbt=g cnbt}
+-- 
+-- -- Decompresses an NBT from a compressed chunk, discarding the timestamp
+-- chunkFromCc :: CompressedChunk -> Chunk
+-- chunkFromCc cc@(CompressedChunk chunkData format ts) =
+--   decode $ decompressWith format chunkData
+-- 
+-- decompressWith :: CompressionFormat -> B.ByteString -> B.ByteString
+-- decompressWith format = case format of
+--   GZip -> GZip.decompress
+--   Zlib -> Zlib.decompress
+-- 
+-- compressWith :: CompressionFormat -> B.ByteString -> B.ByteString
+-- compressWith format = case format of
+--   GZip -> GZip.compress
+--   Zlib -> Zlib.compress
+{- CHUNK EDIT FUNCTIONS -}
 
 -- Convert from cell coordinates to chunk coordinates
 toChunkCoords :: CellCoords -> ChunkCoords
