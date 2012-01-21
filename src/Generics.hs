@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Access where
+module Generics where
 
 import Data.Array
 import Data.Binary
@@ -20,6 +20,13 @@ import Chunk
 import Types
 import Utils
 import Control.Applicative
+
+{- Generics -}
+-- Make automatic instance derivations for SYB, SYZ.
+$(derive makeData ''NBT)
+$(derive makeTypeable ''NBT)
+$(derive makeData ''TagType)
+$(derive makeTypeable ''TagType)
 
 -- value = undefined
 -- let g1 = toZipper nbt1 in
@@ -42,10 +49,6 @@ import Control.Applicative
 updateChunk :: [NBT -> NBT] -> Chunk -> Chunk
 updateChunk [] chunk = chunk
 updateChunk (f:fs) chunk = updateChunk fs (everywhere (mkT f) chunk) -- . vtrace "Updating NBT: " 
-
--------------------------------------------------
--- START FUNCTIONS
--------------------------------------------------
 
 -- Transition function that applies to an NBT I'm interested in.
 -- These are kind of expensive :/
@@ -76,10 +79,6 @@ blockDataUpdates updates (ByteArrayTag (Just "Data") _ bs) =
     bs' = encode $ BlockData (arr // updates)
 blockDataUpdates _ nbt = nbt
 
--------------------------------------------------
--- END FUNCTIONS
--------------------------------------------------
-    
 -- If the hole matches then return the z.
 -- 'plz' means 'possibleListOfZippers'. This is a [NBT] arising from the last
 -- part of either the ListTag or the CompoundTag.
@@ -105,16 +104,3 @@ moveToTagList name z = do
   getFirst . mconcat $
       map First [moveToTag name left, moveToTagList name right]
                     
-$(derive makeData ''NBT)
-$(derive makeTypeable ''NBT)
-$(derive makeData ''TagType)
-$(derive makeTypeable ''TagType)
--- 
--- $(derive makeData ''Region)
--- $(derive makeTypeable ''Region)
--- $(derive makeData ''CompressedChunk)
--- $(derive makeTypeable ''CompressedChunk)
--- -- $(derive makeData ''Chunk)
--- -- $(derive makeTypeable ''Chunk)
--- $(derive makeData ''CompressionFormat)
--- $(derive makeTypeable ''CompressionFormat)

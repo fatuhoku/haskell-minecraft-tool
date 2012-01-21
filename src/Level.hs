@@ -24,7 +24,7 @@ import qualified Data.ByteString.Lazy as B
 import NBTExtras
 import Types
 import Coords
-import Access
+import Generics
 
 -- This data structure presents the data contained within the Level.dat NBT
 -- TODO Expand on this definition to parse the data out of the NBT.

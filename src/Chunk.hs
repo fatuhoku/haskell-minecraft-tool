@@ -29,6 +29,14 @@ type Chunk = NBT
 
 {- CHUNK SERIALIZATION -}
 
+-- A pair of bytestrings
+--  - the array of BlockIDs (1 byte per block)
+--  - the array of DataIDs  (1 nybble per block)
+data ChunkData = ChunkData {
+  blockIds :: B.ByteString,
+  dataIds :: B.ByteString    -- NybbleString really.
+  }
+
 -- Fully represents the "Blocks" TAG_Byte_Array tag of the ChunkNBT.
 data BlockIds = BlockIds (Array CellCoords BlockId)
   deriving (Eq, Show)

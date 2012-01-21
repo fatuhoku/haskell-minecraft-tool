@@ -22,15 +22,15 @@ import qualified Test.HUnit as H
 import qualified Codec.Compression.GZip as G
 import qualified Codec.Compression.Zlib as Z
 
-import Access
 import Block
-import Compression
 import Chunk
+import Compression
 import Coords
-import Level
 import FileIO
-import Region
+import Generics
+import Level
 import NBTExtras
+import Region
 import Types
 import Utils
 import World

@@ -18,7 +18,7 @@ import System.Environment
 import System.IO
 import qualified Data.ByteString.Lazy as B
 
-import Access
+import Generics
 import Block
 import Chunk
 import Coords

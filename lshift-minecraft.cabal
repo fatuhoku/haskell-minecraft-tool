@@ -57,53 +57,42 @@ Test-Suite test-lshift-minecraft
                      QuickCheck, filepath, test-framework-hunit,
                      HUnit, syb, syz, Cabal
 
+Library
+     Hs-source-dirs: src
+     Build-depends:  base, nbt==0.2, utf8-string, binary,
+                     bytestring, zlib, directory,
+                     pretty-show, split, Codec-Image-DevIL,
+                     derive>=2.5.4, colour, array,
+                     utility-ht, data-ordlist, binary-strict,
+                     syz, syb, filepath, list-extras
+     Exposed-modules: 
+                     Block, Chunk, Colour, Compression, Coords,
+                     Devil, FileIO, Generics,
+                     Level, NBTExtras, Region, Timestamp, Types,
+                     Utils, World
+
 Executable get-player-coords
   -- .hs or .lhs file containing the Main module.
      Main-is:        GetPlayerCoords.hs
-     Hs-Source-Dirs: src
-  
-  -- Packages needed in order to build this package.
-     Build-depends:  base, nbt==0.2, utf8-string, binary,
-                     bytestring, zlib, directory,
-                     pretty-show,
-                     derive>=2.5.4, colour, array,
-                     utility-ht, data-ordlist, binary-strict,
-                     syz, syb, filepath
+     Hs-Source-Dirs: src/Exec
+     Build-depends:  base, binary, pretty-show, lshift-minecraft
 
 Executable roundtrip
      Main-is:        RegionRoundTrip.hs
-     Hs-Source-Dirs: src
-     Build-depends:  base, nbt==0.2, utf8-string, binary,
-                     bytestring, zlib, directory,
-                     pretty-show,
-                     derive>=2.5.4, colour, array,
-                     utility-ht, data-ordlist, binary-strict,
-                     syz, syb, filepath
+     Hs-Source-Dirs: src/Exec
+     Build-depends:  base, binary, bytestring, directory, lshift-minecraft
 
 Executable oneblock
      Main-is:        OneWoolBlock.hs
-     Hs-Source-Dirs: src
-     Build-depends:  base, nbt==0.2, utf8-string, binary,
-                     bytestring, zlib, directory,
-                     pretty-show,
-                     derive>=2.5.4, colour, array,
-                     utility-ht, data-ordlist, binary-strict,
-                     syz, syb, filepath, split, Codec-Image-DevIL,
-                     list-extras
+     Hs-Source-Dirs: src/Exec
+     Build-depends:  base, binary, bytestring, directory, array, lshift-minecraft
 
 Executable minecraft-png-import
      Main-is:        MinecraftPngImport.hs
-     Hs-Source-Dirs: src
-     Build-depends:  base, nbt==0.2, utf8-string, binary,
-                     bytestring, zlib, directory,
-                     pretty-show,
-                     derive>=2.5.4, colour, array,
-                     utility-ht, data-ordlist, binary-strict,
-                     syz, syb, filepath, split, Codec-Image-DevIL,
-                     list-extras
+     Hs-Source-Dirs: src/Exec
+     Build-depends:  base, binary, bytestring, directory, array, lshift-minecraft
 
 
-  -- Modules not exported by this package.
   -- Other-modules:       
   
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.

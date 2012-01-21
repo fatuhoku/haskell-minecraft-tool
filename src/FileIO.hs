@@ -26,7 +26,7 @@ import Text.Printf
 import System.Directory
 import System.IO
 import Coords
-import Access
+import Generics
 import Block
 import Chunk
 import Level

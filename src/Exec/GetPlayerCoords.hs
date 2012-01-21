@@ -1,29 +1,9 @@
 module Main where
 
-import Data.NBT
-
-import qualified Codec.Compression.GZip as GZip
-import qualified Codec.Compression.Zlib as Zlib
-
-import qualified Data.ByteString.Lazy as B
-import qualified Data.ByteString.Lazy.UTF8 as UTF8 ( fromString, toString )
-import Data.Array
-import Data.Binary -- ( Binary (..), decode, encode )
-import Data.Binary.Get
-import Data.List
-import Data.Maybe
-
+import System.Environment
+import Data.Binary
 import qualified Text.Show.Pretty as Pr
 import Text.Printf
-import System.IO
-import System.Environment
-
-import Control.Applicative
-import Control.Monad
-
-import System.Directory
-import System.IO
-
 import Chunk
 import NBTExtras
 import Region
