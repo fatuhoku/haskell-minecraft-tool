@@ -6,10 +6,11 @@ import qualified Codec.Compression.GZip as G
 import qualified Codec.Compression.Zlib as Z
 import Data.Binary
 
--- The compressed type represents bytestrings that are 
--- we may need a phantom type to expose the underlying type.
--- The constructor is not exported.
-data Compressed a = GZipCompressed B.ByteString | ZlibCompressed B.ByteString
+-- We use phantom type variable 'a' in (Compressed a) to wrap work with Bytestrings
+-- that, when decompressed and decoded, represent data of type 'a'.
+data CompressionFormat = GZip | Zlib deriving (Eq, Show)
+data Compressed a = CompressedWith CompressionFormat B.ByteString
+  deriving (Eq,Show)
 
 -- This is a typeclass for Binary instances
 -- So there's two steps: there is Binary, which is essentially our functor
@@ -27,5 +28,14 @@ class BinaryFunctor b where
 -- can be. Something which is found in OCaml but not in Haskell.
 -- TODO example?
 instance BinaryFunctor Compressed where
-  bfmap f (GZipCompressed bs) = GZipCompressed $ G.compress.encode.f.decode.G.decompress $ bs
-  bfmap f (ZlibCompressed bs) = ZlibCompressed $ Z.compress.encode.f.decode.Z.decompress $ bs
+  bfmap f (CompressedWith GZip bs) = CompressedWith GZip $ G.compress.encode.f.decode.G.decompress $ bs
+  bfmap f (CompressedWith Zlib bs) = CompressedWith Zlib $ Z.compress.encode.f.decode.Z.decompress $ bs
+
+instance Binary CompressionFormat where
+  get = getWord8 >>= \n -> return $ g n
+    where 
+      g 1 = GZip
+      g 2 = Zlib
+      g x = error $ "get CompressionFormat: unsupported compression number: " ++ show x
+  put GZip = putWord8 1
+  put Zlib = putWord8 2

@@ -38,8 +38,11 @@ import Text.Printf
 import Control.Applicative
 import Control.Monad
 
+import Compression
 import Coords
+import Chunk hiding (indices)
 import Types
+import Timestamp
 import Utils
 
 -- Kilobytes to Bytes, and we define a 'sector' to be 4KiB
@@ -52,6 +55,14 @@ headerSizeInSectors = 2
 -- Indices: increase x stepwise before z.
 -- We use the applciative to index the array in altered index order.
 indices = [(x,z) | z <- [0..numChunksInCol-1], x <- [0..numChunksInRow-1]]
+
+-- Represents the contents of a region file.
+--   A region is an array of possible chunks;
+--   Nothing are chunks that have not been generated yet.
+--   Just chunks are those that have relevant data in the file.
+--   The data is kept uncompressed unless it is needed.
+data Region = Region (Array (X,Z) (Maybe (Compressed Chunk)))
+  deriving (Eq,Show)
 
 -- Region binary instance must provide a get and put functions
 instance Binary Region where
@@ -89,25 +100,7 @@ instance Binary RegionFileHeader where
       tss <- replicateM numChunksInRegion getTimestamp
       return $ RegionFileHeader locs scs tss 
 
-instance Binary CompressionFormat where
-  get = getWord8 >>= \n -> return $ g n
-    where 
-      g 1 = GZip
-      g 2 = Zlib
-      g x = error $ "get CompressionFormat: unsupported compression number: " ++ show x
-  put GZip = putWord8 1
-  put Zlib = putWord8 2
   
-{- REGION EDIT FUNCTIONS -}
-
--- Given a region-local chunk coordinate, we update that chunk in our region.
--- The region is jsut a bunch of Compressed Chunks. I can just give a bfmap
--- functor update.
-modifyRegion :: ChunkCoords -> (CompressedChunk -> CompressedChunk) -> Region -> Region
-modifyRegion coords f (Region arr) =
-  let mCompressedChunk = arr ! coords :: Maybe CompressedChunk in
-  Region $ arr // [(coords, f <$> mCompressedChunk)]
-
 {- SERIALIZATION FUNCTIONS -}
 
 -- | Returns an action in the Put monad that serializes a Region into a byte
@@ -119,7 +112,12 @@ putRegion (Region region) = do
   let compressedChunks = (region !) <$> indices
   -- 2) We extract from this the sector counts and the timestamps
   let scs = sectorCountOf <$> compressedChunks :: [Word8]
-  let tss = timestampOf <$> compressedChunks :: [Timestamp]
+
+  -- FIXME Timestamp is a bit of a cross-cutting concern. It is stored outside of
+  -- the chunk and yet we would like to recover it. Consider processing pairs of 
+  --   ((Compressed Chunk), Timestamp)
+  -- in the future.
+  let tss = timestampOf <$> compressedChunks :: [Timestamp] 
 
   -- 3) Scan over the list to give a tentative list of locations, making sure that we
   -- zero out the locations that represent null chunks (chunks with length zero)
@@ -138,29 +136,28 @@ putRegion (Region region) = do
     locationFilter :: Location -> Word8 -> Location
     locationFilter loc sc = if sc == 0 then 0 else loc
 
-    timestampOf :: Maybe CompressedChunk -> Timestamp
-    timestampOf (Nothing) = 0
-    timestampOf (Just cc) = compressedChunkTimestamp cc
+    timestampOf :: Maybe (Compressed Chunk) -> Timestamp
+    timestampOf _ = fakeTimestamp
 
     -- If we simply scan across the list of sectorCounts with addition, we will
     -- get the list of locations, surely.
-    sectorCountOf :: Maybe CompressedChunk -> Word8
+    sectorCountOf :: Maybe (Compressed Chunk) -> Word8
     sectorCountOf (Nothing) = 0
-    sectorCountOf (Just (CompressedChunk {compressedChunkNbt=cNbt})) = fromIntegral $ B.length cNbt `divPlus1` (4*kB)
+    sectorCountOf (Just (CompressedWith _ bs)) =
+      fromIntegral $ B.length bs `divPlus1` (4*kB)
       
     -- Put the chunk meta (field size and compression type)
     -- Put compressed data, padding the block up with zeroes.
     -- -5 accounts for the bytes used for the header.
-    putCompressedChunkData :: (Maybe CompressedChunk) -> Put
+    putCompressedChunkData :: (Maybe (Compressed Chunk)) -> Put
     putCompressedChunkData (Nothing) = return ()
-    putCompressedChunkData chunk@(Just cc) = do
-      let sectorLength = 4*kB * fromIntegral (sectorCountOf chunk) :: Int64
-      let compressedData = compressedChunkNbt cc
-      let compressedDataSize = B.length compressedData
+    putCompressedChunkData justCc@(Just (CompressedWith fmt bs)) = do
+      let sectorLength = 4*kB * fromIntegral (sectorCountOf justCc) :: Int64
+      let compressedDataSize = B.length bs
       let padding = B.replicate (sectorLength - compressedDataSize - 5) 0
       putWord32be $ fromIntegral compressedDataSize
-      put $ compressedChunkFormat cc
-      mapM_ putLazyByteString [compressedChunkNbt cc,padding] 
+      put fmt
+      mapM_ putLazyByteString [bs,padding] 
 
 -- | @roundToNearest a b @rounds @a@ to the nearest @b@
 roundToNearest :: (Integral a) => a ->  a -> a
@@ -205,15 +202,15 @@ getRegion = do
   -- if they CompressedChunk are sometimes Nothing.
   return . Region $ array arrayBounds indexedCompressedChunks
   where
-    -- Gets compressed chunk objects. The list of locations must be sorted.
-    getCompressedChunk :: (Maybe Location) -> Timestamp -> Get (Maybe CompressedChunk)
+    -- The list of locations must be sorted. The timestamp is discarded
+    getCompressedChunk :: (Maybe Location) -> Timestamp -> Get (Maybe (Compressed Chunk))
     getCompressedChunk Nothing _ = return Nothing
     getCompressedChunk (Just loc) ts = do
       -- 1) Skip ahead to the location we want.
       bytesRead >>= \br -> skip $ fromIntegral (loc - (fromIntegral br))
       -- 2) Extract its compressed data
-      (compFormat, compData) <- getCompressedChunkData loc
-      return . Just $ CompressedChunk compData compFormat ts
+      (compressionFormat, bs) <- getCompressedChunkData loc
+      return . Just $ CompressedWith compressionFormat bs
 
     -- Reads 5 byte leader (meta) for the chunk, retrieving the length of the compressed
     -- data in bytes as well as the compression format it was compressed with.

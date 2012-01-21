@@ -107,8 +107,6 @@ moveToTagList name z = do
                     
 $(derive makeData ''NBT)
 $(derive makeTypeable ''NBT)
-$(derive makeData ''Chunk)
-$(derive makeTypeable ''Chunk)
 $(derive makeData ''TagType)
 $(derive makeTypeable ''TagType)
 -- 

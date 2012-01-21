@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 module Main where
 
 -- import System
@@ -18,9 +19,12 @@ import Test.HUnit.Base hiding (Test)
 import Test.QuickCheck
 import qualified Data.ByteString.Lazy as B
 import qualified Test.HUnit as H
+import qualified Codec.Compression.GZip as G
+import qualified Codec.Compression.Zlib as Z
 
 import Access
 import Block
+import Compression
 import Chunk
 import Coords
 import Level
@@ -183,7 +187,7 @@ assertBlock dir cell block = do
   case region ! c of
     Nothing -> fail $ "No such region: " ++ show r
     Just cc -> do
-      let chunk = chunkFromCc cc
+      let chunk = decompressChunk cc :: Chunk
       -- Do two things here: check that the location
       -- - has the right block id
       --    bat is a bytearraytag
@@ -280,6 +284,12 @@ atMin a b
 diff n a b = take n $
   filter (\(a,b) -> snd a /= snd b) $ zip (assocs a) (assocs b)
 
+-- Decompresses an NBT from a compressed chunk, discarding the timestamp
+decompressChunk :: Compressed Chunk -> Chunk
+decompressChunk cc@(CompressedWith fmt bs) = decode $ case fmt of
+  GZip -> G.decompress bs
+  Zlib -> Z.decompress bs
+
 -- Putting a block in a region will change it.
 -- Not just any arbitrary CellCoords will do here it must be Bounded.
 -- propPutBlockRegion :: Region -> CellCoords -> Block -> Bool
@@ -313,9 +323,9 @@ instance Arbitrary Region where
 --    chunks <- sequence $ arbitrary:[return Nothing | _ <- [4..numChunksInRegion]] ++ [arbitrary,arbitrary]
     return . Region $ listArray ((0,0),(numChunksInRow-1,numChunksInCol-1)) chunks
 
-instance Arbitrary CompressedChunk where
+instance Arbitrary (Compressed Chunk) where
   arbitrary = do
-    liftM3 CompressedChunk arbitrary arbitrary arbitrary
+    liftM2 CompressedWith arbitrary arbitrary
 
 instance Arbitrary CompressionFormat where
   arbitrary = elements [GZip,Zlib]

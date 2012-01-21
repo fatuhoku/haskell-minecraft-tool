@@ -8,48 +8,22 @@ module Types where
 
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.UTF8 as UTF8 ( fromString, toString )
+import qualified Text.Show.Pretty as Pr
 import Data.Array
 import Data.Binary -- ( Binary (..), decode, encode )
 import Data.Binary.Get
 import Data.List
 import Data.Maybe
 import Data.NBT
-
-import qualified Text.Show.Pretty as Pr
 import Text.Printf
-
 import Control.Applicative
 import Control.Monad
-
 import System.Directory
 import System.IO
-
 import Coords
-
--- Represents the contents of a region file.
---   A region is an array of possible chunks;
---   Nothing are chunks that have not been generated yet.
---   Just chunks are those that have relevant data in the file.
---   The data is kept uncompressed unless it is needed.
-data Region = Region (Array (X,Z) (Maybe CompressedChunk))
-  deriving (Eq,Show)
-
-data CompressedChunk = CompressedChunk {
-  compressedChunkNbt :: B.ByteString,
-  compressedChunkFormat :: CompressionFormat,
-  compressedChunkTimestamp :: Timestamp }
---  deriving (Eq,Show)
-  deriving (Eq)
-instance Show CompressedChunk where
-  show (CompressedChunk {compressedChunkNbt=nbt,compressedChunkFormat=format}) =
-    "l: "++ show (B.length nbt)
-
-data CompressionFormat = GZip | Zlib deriving (Eq, Show)
+import Compression
 
 type Timestamp = Word32
-
--- The chunks are simply 
-data Chunk = Chunk Timestamp NBT
 type Byte = Word8
 type Nybble = Word8 -- Waps a Nybble
 
